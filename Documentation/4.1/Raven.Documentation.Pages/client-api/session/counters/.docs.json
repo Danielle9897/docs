@@ -1,39 +1,15 @@
 [
     {
-        "Path": "what-are-counters.markdown",
-        "Name": "What are Counters",
+        "Path": "counters-overview.markdown",
+        "Name": "Counters Overview",
         "Mappings": [],
         "SupportedVersions": [
             "4.1"
         ]
     },
     {
-        "Path": "enableCounters.markdown",
-        "Name": "Enable Counters-Management",
-        "Mappings": [],
-        "SupportedVersions": [
-            "4.1"
-        ]
-    },
-    {
-        "Path": "countersFor.markdown",
-        "Name": "The Session Counters object: CountersFor",
-        "Mappings": [],
-        "SupportedVersions": [
-            "4.1"
-        ]
-    },
-    {
-        "Path": "increment.markdown",
-        "Name": "Modifying a counter's value: Increment",
-        "Mappings": [],
-        "SupportedVersions": [
-            "4.1"
-        ]
-    },
-    {
-        "Path": "increment#creating-a-counter.markdown",
-        "Name": "Creating a counter",
+        "Path": "create-or-modify.markdown",
+        "Name": "Create or Modify a Counter",
         "Mappings": [],
         "SupportedVersions": [
             "4.1"
@@ -41,31 +17,15 @@
     },
     {
         "Path": "delete.markdown",
-        "Name": "Deleting a counter: Delete",
+        "Name": "Delete a Counter",
         "Mappings": [],
         "SupportedVersions": [
             "4.1"
         ]
     },
     {
-        "Path": "get.markdown",
-        "Name": "Getting a counter's value: Get",
-        "Mappings": [],
-        "SupportedVersions": [
-            "4.1"
-        ]
-    },
-    {
-        "Path": "getAll.markdown",
-        "Name": "Geting all document's counters: GetAll",
-        "Mappings": [],
-        "SupportedVersions": [
-            "4.1"
-        ]
-    },
-    {
-        "Path": "FAQ.markdown",
-        "Name": "FAQ",
+        "Path": "retrieve-counter-values.markdown",
+        "Name": "Retrieve Counter Values",
         "Mappings": [],
         "SupportedVersions": [
             "4.1"

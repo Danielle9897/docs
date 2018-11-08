@@ -21,13 +21,22 @@ namespace Rvn.Ch02
             docStore.Initialize();
 
             #region counters_region_CountersFor
+            // 1. Open a session
             using (var session = docStore.OpenSession())
             {
+                // 2. Use the session to load a document.
                 var document = session.Load<SupportCall>("SupportCalls/33-A");
+
+                //3. Create an instance of `CountersFor`
+                //   Pass the document object returned from session.Load as a param.
                 var documentCounters = session.CountersFor(document);
-                documentCounters.Delete("Likes"); // Delete a counter named "Likes"
-                documentCounters.Increment("Modified", 15); // Add 15 to the value of the counter "Modified"
-                var counter = documentCounters.Get("DaysLeft"); // Retrieve the value of the counter "DaysLeft"
+
+                //4. Use `CountersFor` methods to manage the document's Counters
+                documentCounters.Delete("Likes"); // Delete the "Likes" Counter
+                documentCounters.Increment("Modified", 15); // Add 15 to Counter "Modified"
+                var counter = documentCounters.Get("DaysLeft"); // Retrieve the value of Counter "DaysLeft"
+
+                // 5. Save the changes to the session
                 session.SaveChanges();
             }
             #endregion
@@ -50,10 +59,10 @@ namespace Rvn.Ch02
             {
                 var document = session.Load<SupportCall>("SupportCalls/33-A");
                 var documentCounters = session.CountersFor(document);
-                documentCounters.Increment("Likes"); // Increase "Likes" by 1
-                documentCounters.Increment("Dislikes", 1); // Increase "Dislikes" by 1
-                documentCounters.Increment("Views", 15); // Increase "Views" by 15
-                documentCounters.Increment("DaysLeft", -10); // Decrease "DaysLeft" by 10
+                documentCounters.Increment("Likes"); // Increase "Likes" by 1, or create it with a value of 1
+                documentCounters.Increment("Dislikes", 1); // Increase "Dislikes" by 1, or create it with a value of 1
+                documentCounters.Increment("Views", 15); // Increase "Views" by 15, or create it with a value of 15
+                documentCounters.Increment("DaysLeft", -10); // Decrease "DaysLeft" by 10, or create it with a value of -10
                 session.SaveChanges();
             }
             #endregion
@@ -74,13 +83,12 @@ namespace Rvn.Ch02
             #region counters_region_Get
             using (var session = docStore.OpenSession())
             {
-                var document = session.Load<SupportCall>("SupportCalls/33-A");
+                var document = session.Load<SupportCall>("SupportCalls/1-B");
                 var documentCounters = session.CountersFor(document);
 
-                // retrieve and show the value of a counter named "c1"
-                var documentCounter = documentCounters.Get("c1");
-                Console.WriteLine("counter value: " + documentCounter);
-                Console.ReadKey();
+                // retrieve and show Counter's value
+                var DaysLeft = documentCounters.Get("DaysLeft");
+                Console.WriteLine("Days Left: " + DaysLeft);
             }
             #endregion
 
@@ -91,7 +99,7 @@ namespace Rvn.Ch02
                 // load document
                 var document = session.Load<SupportCall>("SupportCalls/33-A");
 
-                // Use CountersFor and GetAll() to get the full sequence of counters' names (keys) and values attached to this document.
+                // Use CountersFor and GetAll() to get the full sequence of counter names (keys) and values attached to this document.
                 var documentCounters = session.CountersFor(document);
                 var countersSequence = documentCounters.GetAll();
 

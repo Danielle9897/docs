@@ -33,5 +33,12 @@
         "Path": "/users-issues",
         "Name": "Users Issues",
         "Mappings": []
+    },
+
+    {
+        "Path": "/studio",
+        "Name": "Studio",
+        "Mappings": []
     }
+    
 ]

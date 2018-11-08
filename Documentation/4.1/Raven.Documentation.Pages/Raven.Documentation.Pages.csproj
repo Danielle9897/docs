@@ -17,8 +17,4 @@
     <Compile Remove="client-api\session\counters\countersFor.cs" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="studio\database\documents\document-view\additional-features\counters\" />
-  </ItemGroup>
-
 </Project>

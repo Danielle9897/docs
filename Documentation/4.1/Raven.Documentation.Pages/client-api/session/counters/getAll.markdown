@@ -1,12 +1,3 @@
-# `GetAll`
-## Get the full sequence of counter names (keys) and values, attached to a chosen document.
-
-## Syntax
-{CODE-BLOCK:json}
-Dictionary<string, long?> GetAll()
-{CODE-BLOCK/}
-
-Return value: An array of counter names and values attached to a specified document.
 
 ##Usage:
 the `GetAll` method is a member of the [CountersFor](../counters/CountersFor) session object.
