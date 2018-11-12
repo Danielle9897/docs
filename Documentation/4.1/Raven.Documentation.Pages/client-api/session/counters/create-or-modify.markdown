@@ -7,9 +7,9 @@
 
 * Use the `Increment` method to **create** a new Counter, or **modify** an existing Counter's value.  
 
-* `Increment` is a member of the [CountersFor Session object](../../../client-api/session/counters/counters-overview).  
+* `Increment` is a member of the [CountersFor Session object](../../../client-api/session/counters/overview#counter-methods-and-the--object).  
 
-*  If the Counter already exists, `Increment` will increase (or decrease) it value.  
+*  If the Counter already exists, `Increment` will increase (or decrease, if the value to "increment" is negative) its value.  
    If the Counter doesn't exist, `Increment` will create it and set its initial value.  
 
 * In this page:
@@ -25,7 +25,7 @@
 {CODE Increment-definition@ClientApi\Session\Counters\Counters.cs /}
 
 | Parameters | Type | Description |
-| ------------- | ------------- | ------------- |
+|:-------------:|:-------------:|:-------------|
 | `counterName` |  string | Counter's name |
 |`incrementValue` | long | Increase Counter by this value. Default value is 1. <br> For a new Counter, this will be its initial value. |
 {PANEL/}
@@ -34,9 +34,9 @@
 
 *  **Flow**:  
   - Open a session  
-  - Create an instance of `CountersFor`:
-      - Either pass an explicit document ID to the CountersFor constructor -or-
-      - Pass the document object returned from a [session.Load Document Method](../../../client-api/session/loading-entities#load)  
+  - Create an instance of `CountersFor`.  
+      - Either pass the `CountersFor` constructor an explicit document ID, -or-  
+      - Pass it an [entity tracked by the session](../../../client-api/session/loading-entities), e.g. a document object returned from [session.query](../../../client-api/session/querying/how-to-query) or from [session.Load](../../../client-api/session/loading-entities#load).  
   - Execute `CountersFor.Increment`
   - Execute `session.SaveChanges` for the changes to take effect  
 
@@ -55,7 +55,7 @@
 - [Studio Counters Management](../../../studio/database/documents/document-view/additional-features/counters#counters)  
 
 ###Client-API - Session
-- [Counters Overview](../../../client-api/session/counters/counters-overview)
+- [Counters Overview](../../../client-api/session/counters/overview)
 - [Delete Counter](../../../client-api/session/counters/delete)
 - [Retrieve Counter Data](../../../client-api/session/counters/retrieve-counter-values)
 

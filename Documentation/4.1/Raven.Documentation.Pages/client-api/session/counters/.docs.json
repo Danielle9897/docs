@@ -1,34 +1,32 @@
 [
     {
-        "Path": "counters-overview.markdown",
-        "Name": "Counters Overview",
-        "Mappings": [],
-        "SupportedVersions": [
-            "4.1"
-        ]
+        "Path": "overview.markdown",
+        "Name": "Overview",
+        "Mappings": []
     },
     {
         "Path": "create-or-modify.markdown",
         "Name": "Create or Modify a Counter",
-        "Mappings": [],
-        "SupportedVersions": [
-            "4.1"
-        ]
+        "Mappings": []
     },
     {
         "Path": "delete.markdown",
         "Name": "Delete a Counter",
-        "Mappings": [],
-        "SupportedVersions": [
-            "4.1"
-        ]
+        "Mappings": []
     },
     {
         "Path": "retrieve-counter-values.markdown",
         "Name": "Retrieve Counter Values",
-        "Mappings": [],
-        "SupportedVersions": [
-            "4.1"
-        ]
+        "Mappings": []
+    },
+    {
+        "Path": "interoperability.markdown",
+        "Name": "Interoperability",
+        "Mappings": []
+    },
+    {
+        "Path": "counters-in-a-cluster.markdown",
+        "Name": "Counters In a Cluster",
+        "Mappings": []
     }
 ]

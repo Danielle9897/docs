@@ -7,7 +7,7 @@
 
 * You can retrieve the value of a single Counter (**Get**), or the values of all the Counters of a document (**GetAll**).
 
-* `Get` & `GetAll` are members of the [CountersFor Session object](../../../client-api/session/counters/counters-overview).  
+* `Get` & `GetAll` are members of the [CountersFor Session object](../../../client-api/session/counters/overview#counter-methods-and-the--object).  
 
 * In this page:  
 
@@ -26,8 +26,6 @@
 
 {PANEL: Get Method - Retrieve a single Counter's value}
 
-{NOTE: }
-
 #### Get: Syntax
 
 * Use `Get` to retrieve the current value of a single Counter.  
@@ -35,24 +33,20 @@
 {CODE Get-definition@ClientApi\Session\Counters\Counters.cs /}
 
 | Parameters | Type | Description |
-| ------------- | ------------- | ------------- |
+|:-------------:|:-------------:|:-------------:|
 | `counterName` |  string | Counter's name |
 
 | Return Type | Description |
-| ------------- | ------------- |
+|:-------------:|:-------------:|
 | `long` | Counter's current value |
-{NOTE/}
-
-{NOTE: }
 
 #### Get: Usage Flow
 
   - Open a session  
-  - Create an instance of `CountersFor`:
-      - Either pass an explicit document ID to the CountersFor constructor -or-
-      - Pass the document object returned from a [session.Load Document Method](../../../client-api/session/loading-entities#load)  
+  - Create an instance of `CountersFor`.  
+      - Either pass the `CountersFor` constructor an explicit document ID, -or-  
+      - Pass it an [entity tracked by the session](../../../client-api/session/loading-entities), e.g. a document object returned from [session.query](../../../client-api/session/querying/how-to-query) or from [session.Load](../../../client-api/session/loading-entities#load).  
   - Execute `CountersFor.Get`
-{NOTE/}
 
 {NOTE: }
 
@@ -62,31 +56,26 @@
 {NOTE/}
 {PANEL/}
 
+---
 
 {PANEL: GetAll Method - Retrieve ALL Counters of a document}
-
-{NOTE: }
 
 #### **GetAll**: Syntax
 * Use `GetAll` to retrieve all names and values of a document's Counters.  
 
 {CODE GetAll-definition@ClientApi\Session\Counters\Counters.cs /}
 
-| Return Type | Description |
-| ------------- | ------------- |
+| Return Type |Description |
+|:-------------:|:-------------:|
 | Dictionary | An array of Counter names and values |
-{NOTE/}
-
-{NOTE: }
 
 ####**GetAll**: Usage Flow
 
   - Open a session.    - 
-  - Create an instance of `CountersFor`:
-      - Either pass an explicit document ID to the CountersFor constructor -or-
-      - Pass the document object returned from a [session.Load Document Method](../../../client-api/session/loading-entities#load).  
+  - Create an instance of `CountersFor`.  
+      - Either pass the `CountersFor` constructor an explicit document ID, -or-  
+      - Pass it an [entity tracked by the session](../../../client-api/session/loading-entities), e.g. a document object returned from [session.query](../../../client-api/session/querying/how-to-query) or from [session.Load](../../../client-api/session/loading-entities#load).  
   - Execute `CountersFor.GetAll`.
-{NOTE/}
 
 {NOTE: }
 
@@ -101,7 +90,7 @@
 - [Studio Counters Management](../../../studio/database/documents/document-view/additional-features/counters#counters)  
 
 ###Client-API - Session
-- [Counters Overview](../../../client-api/session/counters/counters-overview)
+- [Counters Overview](../../../client-api/session/counters/overview)
 - [Create or Modify Counter](../../../client-api/session/counters/create-or-modify)
 - [Delete Counter](../../../client-api/session/counters/delete)
 

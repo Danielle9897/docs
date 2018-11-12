@@ -16,7 +16,7 @@ namespace Rvn.Ch02
             var docStore = new DocumentStore
             {
                 Urls = new[] { "http://localhost:8080" },
-                Database = "Products"
+                Database = "products"
             };
             docStore.Initialize();
 
@@ -27,7 +27,7 @@ namespace Rvn.Ch02
             using (var session = docStore.OpenSession())
             {
                 // 2. Use the session to load a document.
-                var document = session.Load<Product>("Products/1-C");
+                var document = session.Load<Product>("products/1-C");
 
                 // 3. Create an instance of `CountersFor`
                 //   Pass the document object returned from session.Load as a param.
@@ -50,7 +50,7 @@ namespace Rvn.Ch02
             using (var session = docStore.OpenSession())
             {
                 // 2. pass an explicit document ID to the CountersFor constructor 
-                var documentCounters = session.CountersFor("Products/1-C");
+                var documentCounters = session.CountersFor("products/1-C");
 
                 // 3. Use `CountersFor` methods to manage the product document's Counters
                 documentCounters.Delete("ProductLikes"); // Delete the "ProductLikes" Counter
@@ -68,7 +68,7 @@ namespace Rvn.Ch02
             using (var session = docStore.OpenSession())
             {
                 // 2. pass CountersFor's constructor a document ID  
-                var documentCounters = session.CountersFor("Products/1-C");
+                var documentCounters = session.CountersFor("products/1-C");
 
                 // 3. Delete the "ProductLikes" Counter
                 documentCounters.Delete("ProductLikes");
@@ -84,7 +84,7 @@ namespace Rvn.Ch02
             using (var session = docStore.OpenSession())
             {
                 // 2. pass CountersFor's constructor a document ID  
-                var documentCounters = session.CountersFor("Products/1-C");
+                var documentCounters = session.CountersFor("products/1-C");
 
                 // 3. Use `CountersFor.Increment`
                 documentCounters.Increment("ProductLikes"); // Increase "ProductLikes" by 1, or create it with a value of 1
@@ -103,7 +103,7 @@ namespace Rvn.Ch02
             using (var session = docStore.OpenSession())
             {
                 // 2. pass CountersFor's constructor a document ID  
-                var documentCounters = session.CountersFor("Products/1-C");
+                var documentCounters = session.CountersFor("products/1-C");
 
                 // 3. Use `CountersFor.Get` to retrieve a Counter's value
                 var DaysLeft = documentCounters.Get("DaysLeftForSale");
@@ -117,7 +117,7 @@ namespace Rvn.Ch02
             using (var session = docStore.OpenSession())
             {
                 // 2. pass CountersFor's constructor a document ID  
-                var documentCounters = session.CountersFor("Products/1-C");
+                var documentCounters = session.CountersFor("products/1-C");
 
                 // 3. Use GetAll to retrieve all of the document's Counters' names and values.
                 var counters = documentCounters.GetAll();
@@ -137,7 +137,7 @@ namespace Rvn.Ch02
 
                 // load all objects of a specific database
                 Console.WriteLine("list all documents in a collection");
-                var documentsList = session.Advanced.LoadStartingWith<Product>("Products/");
+                var documentsList = session.Advanced.LoadStartingWith<Product>("products/");
                 foreach (var someRecord in documentsList)
                 {
                     var documentID = someRecord.Id;
@@ -165,7 +165,7 @@ namespace Rvn.Ch02
             using (var session = docStore.OpenSession())
             {
                     //	GetCountersOperation
-                    var getthem = new GetCountersOperation("Products/1-C", "c2");
+                    var getthem = new GetCountersOperation("products/1-C", "c2");
                     var resgettem = docStore.Operations.Send(getthem);
                     Console.WriteLine("tararam2 results " + resgettem?.Counters[0]?.TotalValue);
 
@@ -176,7 +176,7 @@ namespace Rvn.Ch02
                         {
                                 new DocumentCountersOperation
                                 {
-                                    DocumentId = "Products/1-C",
+                                    DocumentId = "products/1-C",
                                     Operations = new List<CounterOperation>
                                         {
                                             new CounterOperation {CounterName = "c1", Type = CounterOperationType.Delete },

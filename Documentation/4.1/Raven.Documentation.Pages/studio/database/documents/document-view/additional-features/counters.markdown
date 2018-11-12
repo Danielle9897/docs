@@ -9,11 +9,12 @@
    * Voting results  
    * Any event related to the document  
 
-* Create and manage Counters using [API methods](../../../../../client-api/session/counters/counters-overview), or through the Studio.  
+* Create and manage Counters using [API methods](../../../../../client-api/session/counters/overview), or through the Studio.  
 
 * In this page:  
-  * [Viewing Counters Data](../../../../../../studio/database/documents/document-view/additional-features/counters/counters#viewing-counters-data)  
-  * [Managing Counters](../../../../../../studio/database/documents/document-view/additional-features/counters/counters#managing-counters)  
+  * [Viewing Counters Data](../../../../../studio/database/documents/document-view/additional-features/counters#viewing-counters-data)  
+  * [Managing Counters](../../../../../studio/database/documents/document-view/additional-features/counters#managing-counters)  
+  * [Counters Export and Backup](../../../../../studio/database/documents/document-view/additional-features/counters#counters-export-and-backup)  
 {NOTE/}
 
 ---
@@ -98,7 +99,50 @@
 {NOTE/}
 {PANEL/}
 
+{PANEL:Counters Export and Backup}
+
+Counters can be imported and exported, or backed-up and restored, in several ways.  
+ * As part of an ongoing task -  
+   - [External-Replication task](../../../../../studio/database/tasks/ongoing-tasks/external-replication-task)  
+   - [RavenDB-ETL task](../../../../../studio/database/tasks/ongoing-tasks/ravendb-etl-task#ravendb-etl-task)  
+   - [Backup task](../../../../../studio/database/tasks/ongoing-tasks/backup-task)  
+
+ * As a one-time DB Import or Export task.  
+ 
+{NOTE: }
+
+**Export Database with Counters.**
+
+![Figure 9. Export DB with Counters](images/counters-9-export.png)
+
+* 
+  **1.** Click the Settings gear.  
+  **2.** Click Export Database.  
+  **3.** You can either use the default name or enter your own.  
+  **4.** Choose which components you wish to include. Make sure the Counters are checked.  
+  **5.** Click to export the database.  
+
+{NOTE/}
+
+{NOTE: }
+
+**Import Database with Counters.**
+
+![Figure 10. Import DB with Counters](images/counters-10-import.png)
+
+* 
+  **1.** Click the Settings gear.  
+  **2.** Click Import Data.  
+  **3.** Select a file you wish to import from, or another source.  
+  **4.** Choose which components you wish to include. Make sure the Counters are checked.  
+  **5.** Click to import the database.  
+
+{NOTE/}
+
+{PANEL/}
+
+
 ## Related articles
 ### Client API
-- [Counters Overview (Session Usage)](../../../../../client-api/session/counters/counters-overview)
+- [Counters Overview (Session Usage)](../../../../../client-api/session/counters/overview)
 - [Counters Operations](../../../../../client-api/operations/counters/get-counters#operations--counters--how-to-get-counters)
