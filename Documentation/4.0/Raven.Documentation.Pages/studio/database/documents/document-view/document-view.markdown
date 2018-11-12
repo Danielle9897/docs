@@ -8,8 +8,8 @@
 * Actions such as cloning the document, deleting, adding attachments, and much more can be performed.  
 
 * In this page:  
-  * [Document View](../../../../studio/database/documents/document-view#the-document-view)  
-  * [Documents View - Actions](../../../../studio/database/documents/#document-view---actions)  
+  * [Document View](../../../studio/database/documents/document-view#the-document-view)  
+  * [Documents View - Actions](../../../studio/database/documents/document-view#document-view---actions)  
 {NOTE/}
 
 ---
@@ -20,7 +20,7 @@
 
 1. **Document identifier (ID)**  
 
-   * For a detailed explanation about the possible identifiers, see [Create New Document](../../../../studio/database/documents/create-new-document)  
+   * For a detailed explanation about the possible identifiers, see [Create New Document](../../../studio/database/documents/create-new-document)  
    * Clicking the link right by the ID will show the _raw document output_ that is received  from the server  
 
 2. **Document properties**  
@@ -43,7 +43,7 @@
 
    * b. **Referenced Documents**  
         * You can reference other documents from any other collection (or from the current collection)  
-        * These referenced documents can then be _included_ in a single _Load_ request to the server. See [Load with Includes](../../../../client-api/session/loading-entities#load-with-includes)  
+        * These referenced documents can then be _included_ in a single _Load_ request to the server. See [Load with Includes](../../../client-api/session/loading-entities#load-with-includes)  
         * In the example above, document _'categories/1-A'_ is referenced in the _'Category'_ property  
 
    * c. **Metadata**  

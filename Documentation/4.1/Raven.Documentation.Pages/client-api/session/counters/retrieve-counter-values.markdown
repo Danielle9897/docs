@@ -1,73 +1,109 @@
 # Retrieve Counter Values  
+---
 
-You can retrieve the value of a single Counter, or the values of all the Counters of a document.
-
-**In this page**:  
-* [Retrieving a Counter's value](../../../client-api/session/counters/retrieve-counter-values#retrieving-a-counters-value)  
-* [Retrieving all Counters of a document](../../../client-api/session/counters/retrieve-counter-values#retrieving-all-counters-of-a-document)  
-
-{PANEL: }
-
-##Retrieving a Counter's value
 {NOTE: }
-## `Get`  
-Use `Get` to retrieve the current value of a Counter.  
 
-## Syntax
-{CODE-BLOCK:json}
-long Get(string counterName)
-{CODE-BLOCK/}
+###`CountersFor.Get` & `CountersFor.GetAll`
 
-| Parameters: | |
-|-|-|
-|`counterName`|A string with the Counter's name|
+* You can retrieve the value of a single Counter (**Get**), or the values of all the Counters of a document (**GetAll**).
 
-| Return Value: | |
-|-|-|
-|`long` integer|Counter's current value|
+* `Get` & `GetAll` are members of the [CountersFor Session object](../../../client-api/session/counters/counters-overview).  
 
+* In this page:  
 
-`Get` is a member of the [CountersFor](../../../client-api/session/counters/counters-overview#counter-management-methods-and-the--structure) session object.  
+  * [Get Method - Retrieve a single Counter's value](../../../client-api/session/counters/retrieve-counter-values#get-method---retrieve-a-single-counter)  
+      - [Get Syntax](../../../client-api/session/counters/retrieve-counter-values#get-syntax)  
+      - [Get Usage](../../../client-api/session/counters/retrieve-counter-values#get-usage-flow)  
+      - [Get Code Sample](../../../client-api/session/counters/retrieve-counter-values#get-code-sample)  
 
-*  To use it:  
-  - Open a session.  
-  - Use the session to load a document.  
-  - Create an instance of `CountersFor`, and refer it to the document by giving it the value returned by `session.Load`.  
-  - Execute `Get`. Provide it with the name of the Cuonter whose value you want to retrieve.  
-
-##Sample:
-{CODE counters_region_Get@ClientApi\Session\Counters\Counters.cs /}
-
-
-
+  * [GetAll Method - Retrieve all Counters of a document](../../../client-api/session/counters/retrieve-counter-values#getall-method---retrieve-all-counters-of-a-document)  
+      - [GetAll Syntax](../../../client-api/session/counters/retrieve-counter-values#getall-syntax)  
+      - [GetAll Usage](../../../client-api/session/counters/retrieve-counter-values#getall-usage-flow)  
+      - [GetAll Code Sample](../../../client-api/session/counters/retrieve-counter-values#getall-code-sample)
 {NOTE/}
 
-##Retrieving all Counters of a document
+---
+
+{PANEL: Get Method - Retrieve a single Counter's value}
+
 {NOTE: }
-## `GetAll`  
-Retrieve all Counters (a list of Names and Values) of a chosen document.  
 
-## Syntax
-{CODE-BLOCK:json}
-Dictionary<string, long?> GetAll()
-{CODE-BLOCK/}
+#### Get: Syntax
 
-|-|
-|Return Value:|
-|An array of counter names and values|
-| |
+* Use `Get` to retrieve the current value of a single Counter.  
 
-`GetAll` is a member of the [CountersFor](../../../client-api/session/counters/counters-overview#counter-management-methods-and-the--structure) session object.  
+{CODE Get-definition@ClientApi\Session\Counters\Counters.cs /}
 
-*  To use it:  
-  - Open a session.  
-  - Use the session to load a document.  
-  - Create an instance of `CountersFor`, and refer it to the document by giving it the value returned by `session.Load`.  
-  - Execute `CountersFor.GetAll` to get a list of the document's counters' names and values.  
+| Parameters | Type | Description |
+| ------------- | ------------- | ------------- |
+| `counterName` |  string | Counter's name |
 
-##Sample:
+| Return Type | Description |
+| ------------- | ------------- |
+| `long` | Counter's current value |
+{NOTE/}
+
+{NOTE: }
+
+#### Get: Usage Flow
+
+  - Open a session  
+  - Create an instance of `CountersFor`:
+      - Either pass an explicit document ID to the CountersFor constructor -or-
+      - Pass the document object returned from a [session.Load Document Method](../../../client-api/session/loading-entities#load)  
+  - Execute `CountersFor.Get`
+{NOTE/}
+
+{NOTE: }
+
+#### Get: Code Sample
+
+{CODE counters_region_Get@ClientApi\Session\Counters\Counters.cs /}
+{NOTE/}
+{PANEL/}
+
+
+{PANEL: GetAll Method - Retrieve ALL Counters of a document}
+
+{NOTE: }
+
+#### **GetAll**: Syntax
+* Use `GetAll` to retrieve all names and values of a document's Counters.  
+
+{CODE GetAll-definition@ClientApi\Session\Counters\Counters.cs /}
+
+| Return Type | Description |
+| ------------- | ------------- |
+| Dictionary | An array of Counter names and values |
+{NOTE/}
+
+{NOTE: }
+
+####**GetAll**: Usage Flow
+
+  - Open a session.    - 
+  - Create an instance of `CountersFor`:
+      - Either pass an explicit document ID to the CountersFor constructor -or-
+      - Pass the document object returned from a [session.Load Document Method](../../../client-api/session/loading-entities#load).  
+  - Execute `CountersFor.GetAll`.
+{NOTE/}
+
+{NOTE: }
+
+####**GetAll**: Code Sample
 {CODE counters_region_GetAll@ClientApi\Session\Counters\Counters.cs /}
-
 {NOTE/}
 
 {PANEL/}
+
+## Related articles
+### Studio
+- [Studio Counters Management](../../../studio/database/documents/document-view/additional-features/counters#counters)  
+
+###Client-API - Session
+- [Counters Overview](../../../client-api/session/counters/counters-overview)
+- [Create or Modify Counter](../../../client-api/session/counters/create-or-modify)
+- [Delete Counter](../../../client-api/session/counters/delete)
+
+###Client-API - Operations
+- [Counters Operations](../../../client-api/operations/counters/get-counters#operations--counters--how-to-get-counters)

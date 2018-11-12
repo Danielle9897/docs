@@ -1,32 +1,61 @@
 # Delete a Counter  
-{PANEL: }
-## `Delete`  
-Use `Delete` to remove a Counter from a document.  
-There is no return value, and Delete will not generate an error if the Counter doesn't exist.  
+---
 
-## Syntax
-{CODE-BLOCK:json}
-void Delete(string counterName)
-{CODE-BLOCK/}
+{NOTE: }
 
-| Parameters | |
-| ------------- | ------------- |
-| `counterName` | A string with the Counter's name |
+###`CountersFor.Delete`
 
-`Delete` is a member of the [CountersFor](../../../client-api/session/counters/counters-overview#counter-management-methods-and-the--structure) session object.
+* Use the `Delete` method to remove a Counter from a document.  
 
-*  To use it:  
-  - Open a session.  
-  - Use the session to load a document.  
-  - Create an instance of `CountersFor`, and refer it to the document by giving it the value returned by `session.Load`.  
-  - Execute `Delete`.  
-  - execute `session.SaveChanges` for the changes to take effect.  
+* `Delete` is a member of the [CountersFor Session object](../../../client-api/session/counters/counters-overview).  
 
-*  **Note**:  
-  - A Counter you deleted will be removed only after the execution of `SaveChanges()`.  
-  - Deleting a document, deletes its counters as well.  
-  - There is no return value, and Delete will **not** generate an error if the Counter doesn't exist.  
+* `Delete` will not generate an error if the Counter doesn't exist.  
 
-##Sample:
+* In this page:
+    - [Syntax](../../../client-api/session/counters/delete#syntax)
+    - [Usage](../../../client-api/session/counters/delete#usage)
+    - [Code Sample](../../../client-api/session/counters/delete#code-sample)
+{NOTE/}
+
+---
+
+{PANEL: Syntax}
+
+{CODE Delete-definition@ClientApi\Session\Counters\Counters.cs /}
+
+| Parameters | Type | Description |
+| ------------- | ------------- | ------------- |
+| `counterName` |  string | Counter's name |
+{PANEL/}
+
+{PANEL: Usage}
+
+*  **Flow**:  
+  - Open a session  
+  - Create an instance of `CountersFor`:
+      - Either pass an explicit document ID to the CountersFor constructor -or-
+      - Pass the document object returned from a [session.Load Document Method](../../../client-api/session/loading-entities#load)  
+  - Execute `CountersFor.Delete`
+  - Execute `session.SaveChanges` for the changes to take effect  
+
+* **Note**:
+    * A Counter you deleted will be removed only after the execution of `SaveChanges()`.  
+    * Deleting a document deletes its Counters as well.  
+{PANEL/}
+
+{PANEL: Code Sample}
+
 {CODE counters_region_Delete@ClientApi\Session\Counters\Counters.cs /}
 {PANEL/}
+
+## Related articles
+### Studio
+- [Studio Counters Management](../../../studio/database/documents/document-view/additional-features/counters#counters)  
+
+###Client-API - Session
+- [Counters Overview](../../../client-api/session/counters/counters-overview)
+- [Create or Modify Counter](../../../client-api/session/counters/create-or-modify)
+- [Retrieve Counter Data](../../../client-api/session/counters/retrieve-counter-values)
+
+###Client-API - Operations
+- [Counters Operations](../../../client-api/operations/counters/get-counters#operations--counters--how-to-get-counters)

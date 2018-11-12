@@ -24,7 +24,7 @@
         "IsPlaceholder": "true"
     },
     {
-        "Path": "counters/counters.markdown",
+        "Path": "counters.markdown",
         "Name": "Counters",
         "Mappings": [],
         "SupportedVersions": [

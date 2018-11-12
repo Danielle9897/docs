@@ -9,7 +9,7 @@
    * Voting results  
    * Any event related to the document  
 
-* Create and manage Counters using [API methods](../../../../../../client-api/session/counters/counters-overview), or through the Studio.  
+* Create and manage Counters using [API methods](../../../../../client-api/session/counters/counters-overview), or through the Studio.  
 
 * In this page:  
   * [Viewing Counters Data](../../../../../../studio/database/documents/document-view/additional-features/counters/counters#viewing-counters-data)  
@@ -39,18 +39,20 @@
 
 **4.** Counters' details are located in the Counters Tab.  
 {NOTE: }
+####    
 
-![Figure 4. A document's counters information](images/counters-4-document-view.png)
+![Figure 4. A document's Counters information](images/counters-4-document-view.png)
 <br/>
 
-1. `HasCounters` **flag**  
+1. `HasCounters` **Flag**  
     This flag in the document's metadata, is **automatically** set or removed by the server,  
     indicating whether a document has Counters.  
-2. **Counters-Tab header**  
-   Click the header to open the counters tab.  
+2. **Counters-Tab Header**  
+   Click the header to open the Counters tab.  
    The current number of Counters is stated on the header.  
-3. **Counter name**  
-4. **Counter value**  
+3. **Counter Name**  
+   You can use whatever characters you choose, including Unicode symbols.  
+4. **Counter Value**  
 {NOTE/}
 {PANEL/}
 
@@ -63,14 +65,14 @@
 ![Figure 5. Counter management controls](images/counters-5-management-controls.png)
 {NOTE/}
 
-{NOTE: 1. Click "Add Counter" to create a new counter.}
+{NOTE: 1. Click "Add Counter" to create a new Counter.}
 
-![Figure 6. Add a new counter](images/counters-6-add-new-counter.png)  
+![Figure 6. Add a new Counter](images/counters-6-add-new-counter.png)  
 {NOTE/}
 
-{NOTE: 2. Click the Edit icon to modify a counter's value.}
+{NOTE: 2. Click the Edit icon to modify a Counter's value.}
 
-![Figure 7. Modify counter value](images/counters-7-modify-counter-value.png)  
+![Figure 7. Modify Counter value](images/counters-7-modify-counter-value.png)  
 
 * 
   **A.** Counter's name - Note: Once set, the name cannot be modified.  
@@ -82,16 +84,21 @@
 
 
 * **Note**:  
-  Modifying a counter's value sets its **accumulated value**.  
-  For example, in the above image the counter's value is 348 in Node A, 310 in node B, and (-25) in node C,  
+  Modifying a Counter's value sets its **accumulated value**.  
+  For example, in the above image, the Counter's value is 348 in Node A, 310 in node B, and (-25) in node C,  
   making its accumulated value **633**.  
   Setting the new value to 700 from node A, will change its **accumulated value** to 700 by setting its value in node A to **415**.  
 
-* A counter value can be nagative.  
+* A Counter value can be negative.  
 
 {NOTE/}
 
 {NOTE: 3. Click the Delete icon to remove a counter.}
-![Figure 8. Delete a counter](images/counters-8-delete-counter.png)
+![Figure 8. Delete a Counter](images/counters-8-delete-counter.png)
 {NOTE/}
 {PANEL/}
+
+## Related articles
+### Client API
+- [Counters Overview (Session Usage)](../../../../../client-api/session/counters/counters-overview)
+- [Counters Operations](../../../../../client-api/operations/counters/get-counters#operations--counters--how-to-get-counters)
