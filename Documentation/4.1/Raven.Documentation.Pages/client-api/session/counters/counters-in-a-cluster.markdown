@@ -1,4 +1,4 @@
-# Counters In a Cluster
+# Counters in a Cluster
 ---
 
 {NOTE: }
@@ -112,9 +112,11 @@ In a sequence that includes a call to delete the Counter, the order of actions d
 - [Studio Counters Management](../../../studio/database/documents/document-view/additional-features/counters#counters)  
 
 ###Client-API - Session
+- [Counters Overview](../../../client-api/session/counters/overview)
 - [Create or Modify Counter](../../../client-api/session/counters/create-or-modify)
 - [Delete Counter](../../../client-api/session/counters/delete)
-- [Retrieve Counter Data](../../../client-api/session/counters/retrieve-counter-values)
+- [Retrieve Counter Values](../../../client-api/session/counters/retrieve-counter-values)
+- [Counters Interoperability](../../../client-api/session/counters/interoperability)
 
 ###Client-API - Operations
 - [Counters Operations](../../../client-api/operations/counters/get-counters#operations--counters--how-to-get-counters)

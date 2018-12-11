@@ -55,7 +55,9 @@
 ###Client-API - Session
 - [Counters Overview](../../../client-api/session/counters/overview)
 - [Create or Modify Counter](../../../client-api/session/counters/create-or-modify)
-- [Retrieve Counter Data](../../../client-api/session/counters/retrieve-counter-values)
+- [Retrieve Counter Values](../../../client-api/session/counters/retrieve-counter-values)
+- [Counters Interoperability](../../../client-api/session/counters/interoperability)
+- [Counters in a Cluster](../../../client-api/session/counters/counters-in-a-cluster)
 
 ###Client-API - Operations
 - [Counters Operations](../../../client-api/operations/counters/get-counters#operations--counters--how-to-get-counters)

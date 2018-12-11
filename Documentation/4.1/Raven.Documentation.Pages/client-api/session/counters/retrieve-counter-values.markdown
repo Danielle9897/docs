@@ -93,6 +93,8 @@
 - [Counters Overview](../../../client-api/session/counters/overview)
 - [Create or Modify Counter](../../../client-api/session/counters/create-or-modify)
 - [Delete Counter](../../../client-api/session/counters/delete)
+- [Counters Interoperability](../../../client-api/session/counters/interoperability)
+- [Counters in a Cluster](../../../client-api/session/counters/counters-in-a-cluster)
 
 ###Client-API - Operations
 - [Counters Operations](../../../client-api/operations/counters/get-counters#operations--counters--how-to-get-counters)

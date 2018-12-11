@@ -146,7 +146,9 @@ can operate on a set of Counters of different documents in a single request.
 ###Client-API - Session
 - [Create or Modify Counter](../../../client-api/session/counters/create-or-modify)
 - [Delete Counter](../../../client-api/session/counters/delete)
-- [Retrieve Counter Data](../../../client-api/session/counters/retrieve-counter-values)
+- [Retrieve Counter Values](../../../client-api/session/counters/retrieve-counter-values)
+- [Counters Interoperability](../../../client-api/session/counters/interoperability)
+- [Counters in a Cluster](../../../client-api/session/counters/counters-in-a-cluster)
 
 ###Client-API - Operations
 - [Counters Operations](../../../client-api/operations/counters/get-counters#operations--counters--how-to-get-counters)

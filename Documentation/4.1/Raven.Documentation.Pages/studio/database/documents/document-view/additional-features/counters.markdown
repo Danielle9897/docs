@@ -102,12 +102,12 @@
 {PANEL:Counters Export and Backup}
 
 Counters can be imported and exported, or backed-up and restored, in several ways.  
- * As part of an ongoing task -  
+
+* As part of an ongoing task -  
    - [External-Replication task](../../../../../studio/database/tasks/ongoing-tasks/external-replication-task)  
    - [RavenDB-ETL task](../../../../../studio/database/tasks/ongoing-tasks/ravendb-etl-task#ravendb-etl-task)  
    - [Backup task](../../../../../studio/database/tasks/ongoing-tasks/backup-task)  
-
- * As a one-time DB Import or Export task.  
+* As a one-time DB Import or Export task.  
  
 {NOTE: }
 
