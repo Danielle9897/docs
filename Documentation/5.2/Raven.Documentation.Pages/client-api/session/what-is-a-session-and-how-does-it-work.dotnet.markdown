@@ -5,7 +5,7 @@
 {NOTE: }  
 
 * The **Session**, which is obtained from the [Document Store](../../client-api/what-is-a-document-store),  
-  is a [Unit of Work](https://martinfowler.com/eaaCatalog/unitOfWork.html) that represents a single _business_ transaction on a particular database (not to be confused with a transaction in terms of ACID).  
+  is a [Unit of Work](https://en.wikipedia.org/wiki/Unit_of_work) that represents a single [_business transaction_](https://martinfowler.com/eaaCatalog/unitOfWork.html) on a particular database (not to be confused with a transaction in terms of ACID).  
 
 * Basic **document CRUD** actions and **document Queries** are available through the `Session`.  
   More advanced options are available using `Advanced` Session operations.  
@@ -36,10 +36,11 @@
 
 {PANEL: Concept of the session}
 
-The sesion (`ISession` / `IAsyncDocumentSession`) is based on the Unit of Work and Identity map patterns. It's a primary interface that your application will interacts with.
+The session (`ISession` / `IAsyncDocumentSession`) is based on the [Unit of Work](https://martinfowler.com/eaaCatalog/unitOfWork.html) and [Identity Map](https://martinfowler.com/eaaCatalog/identityMap.html) patterns.
+It's a primary interface that your application will interacts with.
 
-Following Martin Fowler's definition of [Unit of Work](https://en.wikipedia.org/wiki/Unit_of_work) (UoW), the session implements a container that allows you to load, create or update entities and
-it keeps track of changes. It means that upon a completion of a [business transaction](https://en.wikipedia.org/wiki/Business_transaction_management) the modified objects will be send back to a database.
+The session is container that allows you to load, create or update entities and it keeps track of changes. It means that upon a completion of a [business transaction](https://en.wikipedia.org/wiki/Business_transaction_management) 
+it allows to aggregate the modifications and send them back to a database.
 
 Note that a business transaction typically spans multiple requests such as load of documents or execution of queries but the modifications made within the session will be batched and sent together in a single (HTTP) request to a database.
 
@@ -48,8 +49,8 @@ The changes are sent to a database only on an explicit user's request (see more 
 
 {INFO: }
 
-RavenDB Client is a native way to interact with a RavenDB database. It **is not** an Object–relational mapping (ORM) tool. Although if you're familiar with NHibernate of Entity Framework ORMs you'll recognize that
-the session is equivalent of NHibernate's session and Entity Framework's DataContext which implement UoW pattern (same as RavenDB's session).
+RavenDB Client is a native way to interact with a RavenDB database. It _is not_ an Object–relational mapping (ORM) tool. Although if you're familiar with NHibernate of Entity Framework ORMs you'll recognize that
+the session is equivalent of NHibernate's session and Entity Framework's DataContext which implement UoW pattern as well.
 
 {INFO/}
 
@@ -126,7 +127,7 @@ the session is equivalent of NHibernate's session and Entity Framework's DataCon
 * The client API not attempt to provide transactional semantics over the entire session. The session **does not** represent a transaction (nor a transaction scope) in terms of ACID transactions. 
   RavenDB provides transactions over individual request so each call made with the usage of the session will be processed in separate transaction on a database side. It applies to both reads and writes. 
 
-##### Read tramsactions
+##### Read transactions
 
 * Each call retrieving data from a database will generate a separate request - multiple requests means separate transactions.
 * You can read _multiple_ documents in a single request by using overloads of `Load()` method allowing to specify collection of IDs or a prefix of ID. Also a query which can return multiple documents is executed in a single request,
