@@ -4,7 +4,7 @@
 
 {NOTE: }
 
-* A session represents a single business transaction.  
+* A session represents a single [business transaction](https://martinfowler.com/eaaCatalog/unitOfWork.html) (not to be confused with a [transaction](../../../client-api/faq/transaction-support) in terms of ACID).  
   When opening a session, the session's mode can be set to either:  
     * __Single-Node__ - transaction is executed on a specific node and then replicated
     * __Cluster-Wide__ - transaction is registered for execution on all nodes in an atomic fashion
@@ -113,6 +113,13 @@
     * And - when resolving occasional conflicts is acceptable
 
 {NOTE/}
+
+{INFO:Transactions in RavenDB}
+
+For the detailed description of transactions in RavenDB please navigate to a [dedicated aricle](../../client-api/faq/transaction-support).
+
+{INFO/}
+
 {PANEL/}
 
 ## Related Articles

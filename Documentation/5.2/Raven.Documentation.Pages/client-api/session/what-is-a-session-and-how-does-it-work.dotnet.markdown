@@ -5,7 +5,7 @@
 {NOTE: }  
 
 * The **Session**, which is obtained from the [Document Store](../../client-api/what-is-a-document-store),  
-  is a [Unit of Work](https://en.wikipedia.org/wiki/Unit_of_work) that represents a single [_business transaction_](https://martinfowler.com/eaaCatalog/unitOfWork.html) on a particular database (not to be confused with a transaction in terms of ACID).  
+  is a [Unit of Work](https://en.wikipedia.org/wiki/Unit_of_work) that represents a single [_business transaction_](https://martinfowler.com/eaaCatalog/unitOfWork.html) on a particular database (not to be confused with a [transaction](../../client-api/faq/transaction-support) in terms of ACID).  
 
 * Basic **document CRUD** actions and **document Queries** are available through the `Session`.  
   More advanced options are available using `Advanced` Session operations.  
@@ -39,7 +39,7 @@
 The session (`ISession` / `IAsyncDocumentSession`) is based on the [Unit of Work](https://martinfowler.com/eaaCatalog/unitOfWork.html) and [Identity Map](https://martinfowler.com/eaaCatalog/identityMap.html) patterns.
 It's a primary interface that your application will interacts with.
 
-The session is container that allows you to load, create or update entities and it keeps track of changes. It means that upon a completion of a [business transaction](https://en.wikipedia.org/wiki/Business_transaction_management) 
+The session is container that allows you to load, create or update entities and it keeps track of changes. It means that upon a completion of a [business transaction](https://martinfowler.com/eaaCatalog/unitOfWork.html) 
 it allows to aggregate the modifications and send them back to a database.
 
 Note that a business transaction typically spans multiple requests such as load of documents or execution of queries but the modifications made within the session will be batched and sent together in a single (HTTP) request to a database.

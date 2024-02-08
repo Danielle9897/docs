@@ -1,5 +1,24 @@
 # FAQ: Transaction Support in RavenDB
 
+---
+
+{NOTE: }  
+
+* In this page:
+  * [ACID storage](../../client-api/faq/transaction-support#acid-storage)  
+  * [What is and is not a transaction in RavenDB?](../../client-api/faq/transaction-support#what-is-and-is-not-a-transaction-in-ravendb?)  
+  * [Working with Transactions in RavenDB ](../../client-api/faq/transaction-support#working-with-transactions-in-ravendb)
+     * [Single node model](../../client-api/faq/transaction-support#single-node-model)
+     * [Multi-master model](../../client-api/faq/transaction-support#multi-master-model)
+     * [Cluster-wide transactions](../../client-api/faq/transaction-support#cluster-wide-transactions)
+  * [ACID for document operations](../../client-api/faq/transaction-support#acid-for-document-operations)
+  * [BASE for query operations](../../client-api/faq/transaction-support#base-for-query-operations)
+     
+
+{NOTE/}  
+
+---
+
 {PANEL:ACID storage}
 
 All storage operations performed in RavenDB are fully ACID (Atomicity, Consistency, Isolation, Durability), this is because internally RavenDB used a custom made storage engine called *Voron*, which guarantees all the properties of the ACID, no matter if those are executed on document, index or cluster storage data.
@@ -26,6 +45,8 @@ All storage operations performed in RavenDB are fully ACID (Atomicity, Consisten
 
 {PANEL: Working with Transactions in RavenDB}
 
+### Single node model
+
 Transactional behavior with RavenDB is divided into two modes:
 
 * In the first mode a user can perform all requested operations (read or write) in a single request. This can be achieved by [running a script](../../client-api/operations/patching/single-document).
@@ -40,8 +61,13 @@ Transactional behavior with RavenDB is divided into two modes:
 
 RavenDB client uses HTTP to communicate with RavenDB server. It means that RavenDB doesn't allow to open a transaction on the server side, make multiple operations over a network connection and then commit or rolling it back. 
 This is model is called interactive transactions. It is incredibly costly model. Both in terms of engine complexity, the impact on the overall performance of the system and the capabilities you are able to offer.
+
+{INFO: }
+
 In [one study](http://nms.csail.mit.edu/~stavros/pubs/OLTP_sigmod08.pdf) the cost of managing the transaction state across multiple network operations was measured in over 40% of the total system performance. 
 This is because the server needs to maintain locks and state across potentially very large time frames.
+
+{INFO/}
 
 Key to that design decision is that we are able to provide the same guarantees about the state of your data without needing to pay the costs of interactive transactions.
 It is a model that is distinct from the classical SQL one, of interactive transactions.
@@ -57,6 +83,72 @@ That model fits the batch transaction model a lot more closely than the interact
 
 All the changes that were sent via _SaveChanges_ are persisted in a single unit, and if you care to avoid lost updates, you need to ensure you use [optimistic concurrency](../../client-api/session/configuration/how-to-enable-optimistic-concurrency).
 
+<hr/>
+
+### Multi-master model
+
+RavenDB uses the multi-master model. You can make writes to any node in the cluster, and they'll propagate to the other nodes in an asynchronous manner via the [replication](../../server/clustering/replication/replication). 
+
+The interaction of transactions and distributed work is anything but trivial. Let's start from the obvious problem:
+
+* RavenDB allows you to perform write operations on multiple nodes simultaneously.
+* RavenDB explicitly allows you to write to a node that was partitioned from the rest of the network.
+
+Taken together, this violates the [CAP theorem](https://en.wikipedia.org/wiki/CAP_theorem). Because you cannot be both consistent and tolerant to partitions at the same time. Sadly, we weren't able to come with a workaround to CAP.
+RavenDB's answer to distributed transactional work is nuanced and was designed to give you as the user the choice so you can utilize RavenDB for each of your scenarios.
+
+When running in a multi-node setup, RavenDB still uses transactions. However, they are single-node transactions. That means that the set of changes that you write in a transaction is 
+committed to the node you are writing to only. It will then asynchronously replicate to the other nodes. 
+
+#### Replication conflicts
+
+This is an important observation, because you can get into situations where two clients wrote (even with [optimistic concurrency](../../client-api/session/configuration/how-to-enable-optimistic-concurrency) turned on) to 
+the same document and both of them committed successfully (each one to a separate node). RavenDB attempts to minimize this situation by designating a [preferred node](../../client-api/configuration/load-balance/overview#the-preferred-node) for writes for each database, 
+but it doesn't alleviate this issue. This is a consideration you have to take into account when using single node transactions in RavenDB (see below for running a [cluster-wide transaction](../../client-api/faq/transaction-support#cluster-wide-transactions)).
+
+In such a case, the data will replicate across the cluster, and RavenDB will detect that there were [conflicting](../../server/clustering/replication/replication-conflicts) modifications to the document. 
+It will then apply the [conflict resolution](../../studio/database/settings/conflict-resolution) strategy that you choose. That can include selecting manual resolution, 
+running a [merge script](../../server/clustering/replication/replication-conflicts#conflict-resolution-script) to reconcile the conflicting versions or simply selecting the latest version.
+You are in control of this behavior. 
+
+This behavior was designed under the assumption that if you are writing data to the database, you want to have it persisted. RavenDB will do its utmost to provide that to you, 
+allowing you to write to the database even in the case of partitions or partial failure states. 
+
+{WARNING: Lost updates}
+
+If no conflict resolution script is defined for a collection, then by default RavenDB resolves a conflict using the latest version based on the `@last-modified` property of conflicted versions of a document.
+That might result in the lost update anomaly.
+
+If you care about avoiding lost updates, you need to ensure you have the conflict resolution script defined accordingly or use [cluster-wide transaction](../../client-api/faq/transaction-support#cluster-wide-transactions).
+
+{WARNING/}
+
+#### Replication & transaction boundary
+
+An important aspect to RavenDB's transactional behavior with regards to asynchronous replication. When replicating modifications to another server, 
+RavenDB will ensure that the [transaction boundaries](../../server/clustering/replication/replication#replication-&-transaction-boundary) are kept even when replicating to another server. 
+In other words, if you wrote two documents to one node, you are guaranteed that upon seeing the changes to one of those documents in another node, you'll also read the changes on the other one (or a later version). 
+
+<hr/>
+
+### Cluster-wide transactions
+
+RavenDB also supports [cluster-wide transactions](../../client-api/session/cluster-transaction/overview). This feature modifies the way RavenDB commits a transaction, and it is meant to address scenarios 
+where you prefer to get failure if the transaction cannot be persisted to a majority of the nodes in the cluster. In other words, this feature is for the scenarios where you want to favor consistency over availability.
+
+For cluster-wide transactions, RavenDB uses the [Raft](../../server/clustering/rachis/what-is-rachis#what-is-raft-?) protocol. It ensures that the transaction is acknowledged by a majority of the nodes in
+the cluster and upon commit, will be visible on any node that you'll use henceforth. Like single-node transactions, RavenDB requires that you submit the cluster-wide transaction as a single request to a database 
+of all the changes you want to commit. 
+
+Cluster-wide transactions has the notion of [atomic guards](../../session/cluster-transaction/atomic-guards) to prevent an overwrite of a document modified in a cluster transaction by changed made in another cluster transaction.
+
+{INFO: }
+
+The usage of atomic guards makes that cluster-wide transactions are conflict free. There is no way to make a conflict between two versions of the same document. If a document got updated meanwhile by someone else then
+`ConcurrencyException` will be thrown.
+
+{INFO/}
+
 {PANEL/}
 
 {PANEL:ACID for document operations}
@@ -71,7 +163,9 @@ In RavenDB all actions performed on documents are fully ACID. An each document o
 
 * _Durability_ - If an operation has completed successfully, it was fsync'ed to disk. Reads will never return any data that hasn't been flushed to disk.
 
-All of these constraints are ensured when you use [a session](../session/what-is-a-session-and-how-does-it-work) and store documents in RavenDB with the usage of call [`SaveChanges`](../session/saving-changes).
+All of these constraints are ensured for a single request to a database when you use [a session](../session/what-is-a-session-and-how-does-it-work). In particular, it means that each `Load` call is a separate transaction and the
+[`SaveChanges`](../session/saving-changes) call will store all documents modified within a session in a single transaction.
+
 
 {PANEL/}
 
