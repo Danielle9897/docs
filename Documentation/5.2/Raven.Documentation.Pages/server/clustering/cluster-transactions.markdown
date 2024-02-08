@@ -110,7 +110,7 @@ Compare-exchange operations should be used to ensure consistency in that regard.
 to appear as if they are run one at a time (`serializable` isolation level). 
 
 Cluster-wide transactions may only contain `PUT` / `DELETE` commands. This is required to ensure that we can apply the transaction 
-to each of the database nodes without regard to the current node state.
+to each of the database nodes without regard to the current node state (note: the update of a document is effectively executed as `PUT` command).
 
 {INFO If the concurrency check of the compare exchange has passed, the transaction will proceed and will be committed on all the database nodes. /}
 
