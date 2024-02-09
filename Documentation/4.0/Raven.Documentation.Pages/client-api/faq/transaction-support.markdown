@@ -185,7 +185,7 @@ The transaction model is different when indexes are involved, because indexes ar
 
 #### Single request
 
-The operations executed on documents are executed in ACID transactions. This applies to actions executed in a single HTTP request. As described above there are options to send a script that reads and modifies data in single unit
+The operations executed on documents are executed in ACID transactions. This applies to actions executed in a single HTTP request. As described above there are options to send a [script](../../client-api/operations/patching/single-document) that reads and modifies data in single unit
 and it is executed in a single server side transaction hece it provides _Serializable_ isolation in a single-node model and _Cursor Stability_ in a multi-master model (it requires a conflict resolver to be defined, otherwise if offers _Read Committed_).
 
 #### Multiple requests

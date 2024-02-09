@@ -20,6 +20,12 @@ exists.
 
 Setting optimistic concurrency per specific document overrides the use of the `UseOptimisticConcurrency` property from the `Advanced` session operations.
 
+{INFO:  }
+
+For the detailed description of transactions and concurrency control in RavenDB please navigate to a [dedicated aricle](../../../client-api/faq/transaction-support).
+
+{INFO/}
+
 ## Enabling for a specific Session
 
 {CODE optimistic_concurrency_1@ClientApi\Session\Configuration\OptimisticConcurrency.cs /}
@@ -49,3 +55,7 @@ It will cause to throw `ConcurrencyException` if the document already exists.
 ### Configuration
 
 - [Conventions](../../../client-api/configuration/conventions)
+
+### FAQ
+
+- [Transaction Support in RavenDB](../../../client-api/faq/transaction-support)
