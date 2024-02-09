@@ -13,7 +13,7 @@
      * [Cluster-wide transactions](../../client-api/faq/transaction-support#cluster-wide-transactions)
   * [ACID for document operations](../../client-api/faq/transaction-support#acid-for-document-operations)
   * [BASE for query operations](../../client-api/faq/transaction-support#base-for-query-operations)
-     
+  * [Consistency and isolation with the usage of the session](../../client-api/faq/transaction-support#consistency-and-isolation-with-the-usage-of-the-session)
 
 {NOTE/}  
 
@@ -163,7 +163,7 @@ In RavenDB all actions performed on documents are fully ACID. An each document o
 
 * _Durability_ - If an operation has completed successfully, it was fsync'ed to disk. Reads will never return any data that hasn't been flushed to disk.
 
-All of these constraints are ensured for a single request to a database when you use [a session](../session/what-is-a-session-and-how-does-it-work). In particular, it means that each `Load` call is a separate transaction and the
+All of these constraints are ensured for a single request to a database when you use [a session](../../session/what-is-a-session-and-how-does-it-work). In particular, it means that each `Load` call is a separate transaction and the
 [`SaveChanges`](../session/saving-changes) call will store all documents modified within a session in a single transaction.
 
 
@@ -181,8 +181,32 @@ The transaction model is different when indexes are involved, because indexes ar
 
 {PANEL/}
 
+{PANEL: Consistency and isolation with the usage of the session}
+
+#### Single request
+
+The operations executed on documents are executed in ACID transactions. This applies to actions executed in a single HTTP request. As described above there are options to send a script that reads and modifies data in single unit
+and it is executed in a single server side transaction hece it provides _Serializable_ isolation in a single-node model and _Cursor Stability_ in a multi-master model (it requires a conflict resolver to be defined, otherwise if offers _Read Committed_).
+
+#### Multiple requests
+
+Although the typicall interaction with a database with the usage of the session involves multiple requests (loading the data and saving it after altering). What are the guarantees when you use the session and 
+execute multiple calls to the database? It depends on the configuration of the session.
+
+* The interaction with a database involving multiple requests, with the usage of the session in its default configuration, provides _Read Committed_ for both models - single node and multi-master.
+
+* By enabling the [optimistic concurrency](../../client-api/session/configuration/how-to-enable-optimistic-concurrency) in the session you prevent lost update so it provides _Cursor Stability_ 
+(in multi-master a conflict resolver needs to be defined, otherwise _Read Committed_ is guaranteed).
+
+* If the session is configured to use `ClusterWide` transaction mode then the optimisic concurrency and the script patching isn't available. But then you have _Cursor Stability_ even for interactions spanning 
+multiple requests to a database. Write operations executed in single `SaveChanges()` guarantee _Serializable_ isolation same as in the `SingleNode` transaction mode.   
+
+{PANEL/}
+
 ## Related Articles
 
 ### Server
 
 - [Storage Engine](../../server/storage/storage-engine)
+- [What is a Session and How Does it Work](../../session/what-is-a-session-and-how-does-it-work)
+- [optimistic concurrency](../../client-api/session/configuration/how-to-enable-optimistic-concurrency)
