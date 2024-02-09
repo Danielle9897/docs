@@ -4,7 +4,7 @@ Pending session operations e.g. `Store`, `Delete` and many others will not be se
 
 {INFO: }
 
-Whenever you execute `SaveChanges()` to send a batch of operations like put, update or delete in a request, a it will wrap it in a transaction upon execution on a database side. 
+Whenever you execute `SaveChanges()` to send a batch of operations like put, update or delete in a request, it will wrap it in a [transaction](../../client-api/faq/transaction-support) upon execution on a database side. 
 So either all of them will be saved as a single, atomic transaction or none of them are. Once `SaveChanges()` returns successfully, it is guaranteed that all changes are persisted to the database.  
 
 {INFO/}

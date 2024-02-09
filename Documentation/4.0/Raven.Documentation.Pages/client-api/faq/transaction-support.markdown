@@ -6,14 +6,14 @@
 
 * In this page:
   * [ACID storage](../../client-api/faq/transaction-support#acid-storage)  
-  * [What is and is not a transaction in RavenDB?](../../client-api/faq/transaction-support#what-is-and-is-not-a-transaction-in-ravendb?)  
-  * [Working with Transactions in RavenDB ](../../client-api/faq/transaction-support#working-with-transactions-in-ravendb)
+  * [What is and what is not a transaction](../../client-api/faq/transaction-support#what-is-and-what-is-not-a-transaction)  
+  * [Working with transactions in RavenDB ](../../client-api/faq/transaction-support#working-with-transactions-in-ravendb)
      * [Single node model](../../client-api/faq/transaction-support#single-node-model)
      * [Multi-master model](../../client-api/faq/transaction-support#multi-master-model)
      * [Cluster-wide transactions](../../client-api/faq/transaction-support#cluster-wide-transactions)
   * [ACID for document operations](../../client-api/faq/transaction-support#acid-for-document-operations)
   * [BASE for query operations](../../client-api/faq/transaction-support#base-for-query-operations)
-  * [Consistency and isolation with the usage of the session](../../client-api/faq/transaction-support#consistency-and-isolation-with-the-usage-of-the-session)
+  * [Consistency and isolation with the usage of Client API Session](../../client-api/faq/transaction-support#consistency-and-isolation-with-the-usage-of-client-api-session)
 
 {NOTE/}  
 
@@ -25,7 +25,7 @@ All storage operations performed in RavenDB are fully ACID (Atomicity, Consisten
 
 {PANEL/}
 
-{PANEL:What is and is not a transaction in RavenDB?}
+{PANEL:What is and what is not a transaction}
 
 * A transaction represents a set of operations executed against a database as a single, atomic and isolated unit. 
 
@@ -33,38 +33,38 @@ All storage operations performed in RavenDB are fully ACID (Atomicity, Consisten
 
 * The terms "ACID transaction" or "transaction" refer to the storage engine transactions. Whenever a database receives an operation or batch of operations in a request, it will wrap it in a storage transaction, execute the operations and commit the transaction.
 
-* RavenDB ensures that for a single request, all the operations in that request are transactional.    
+* RavenDB ensures that for a single HTTP request, all the operations in that request are transactional.    
   * If you are doing a read operation, all the data within that request is read using Snapshot Isolation.  
   * If you are performing a write operation, it is using Serializable Isolation.   
 
 * RavenDB doesn't support a transaction over more than a single HTTP request so the interactive transactions are not implemented by RavenDB (see below for the reasoning behind this).  
 
-* The [session](../../client-api/session/what-is-a-session-and-how-does-it-work) is pure Client API object and does not represent a transaction hence it's not meant to provide interactive transaction semantics. There isn't any server-side reference to the session.
+* The [Client API Session](../../client-api/session/what-is-a-session-and-how-does-it-work) is pure Client API object and does not represent a transaction hence it's not meant to provide interactive transaction semantics. There isn't any server-side reference to the session.
 
 {PANEL/}
 
-{PANEL: Working with Transactions in RavenDB}
+{PANEL: Working with transactions in RavenDB}
 
 ### Single node model
 
 Transactional behavior with RavenDB is divided into two modes:
 
 * In the first mode a user can perform all requested operations (read or write) in a single request. This can be achieved by [running a script](../../client-api/operations/patching/single-document).
-  Although this is not something that most users typically do. It's rather for specific scenarios where you need to read / make decisions / update document (or documents) within the scope of a single transaction.
+  However, this is not something that most users typically do. It's rather for specific scenarios where you need to read / make decisions / update document (or documents) within the scope of a single transaction.
   If you want to just mutate a document in a transaction, [JSON Patch](../../client-api/operations/patching/json-patch-syntax) allows you to do that.
 
-* Transactional behavior over multiple requests. With RavenDB, you cannot have a single transaction that spans all those operations with multiple requests. 
-  Instead, you are expected to utilize [optimistic concurrency](../../client-api/session/configuration/how-to-enable-optimistic-concurrency) to get the same effective behavior. 
+* The behavior over multiple requests. With RavenDB, you cannot have a single transaction that spans all those operations with multiple requests. 
+  Instead, you are expected to utilize [optimistic concurrency](../../client-api/session/configuration/how-to-enable-optimistic-concurrency) to get the same effective behavior.
   Your changes will get committed only if no one changed the data you are modifying in the meantime. 
 
 #### No support for interactive transactions
 
-RavenDB client uses HTTP to communicate with RavenDB server. It means that RavenDB doesn't allow to open a transaction on the server side, make multiple operations over a network connection and then commit or rolling it back. 
-This is model is called interactive transactions. It is incredibly costly model. Both in terms of engine complexity, the impact on the overall performance of the system and the capabilities you are able to offer.
+RavenDB client uses HTTP to communicate with RavenDB server. It means that RavenDB doesn't allow you to open a transaction on the server side, make multiple operations over a network connection and then commit or roll it back. 
+This model is called interactive transactions model. It is incredibly costly model. Both in terms of engine complexity, the impact on the overall performance of the system and the capabilities you are able to offer.
 
 {INFO: }
 
-In [one study](http://nms.csail.mit.edu/~stavros/pubs/OLTP_sigmod08.pdf) the cost of managing the transaction state across multiple network operations was measured in over 40% of the total system performance. 
+In [one study](http://nms.csail.mit.edu/~stavros/pubs/OLTP_sigmod08.pdf) the cost of managing the transaction state across multiple network operations was measured at over 40% of the total system performance. 
 This is because the server needs to maintain locks and state across potentially very large time frames.
 
 {INFO/}
@@ -81,7 +81,8 @@ The reason for this decision is the usual interaction model in which RavenDB is 
 let them make changes to it and then save it. You have one request that loads the data and show that to the user, some "think time", and then an set of updates comes from the user, which are then persisted to the database.
 That model fits the batch transaction model a lot more closely than the interactive one. There is no need to hold a transaction open for the "think time" of the user. 
 
-All the changes that were sent via _SaveChanges_ are persisted in a single unit, and if you care to avoid lost updates, you need to ensure you use [optimistic concurrency](../../client-api/session/configuration/how-to-enable-optimistic-concurrency).
+All the changes that were sent via _SaveChanges_ are persisted in a single unit, and if you care to avoid lost updates, you need to ensure you use [optimistic concurrency](../../client-api/session/configuration/how-to-enable-optimistic-concurrency)
+(turned off by default), across all sessions that modify documents which you want to assure they won't by affected by the lost update problem.
 
 <hr/>
 
@@ -137,8 +138,7 @@ RavenDB also supports [cluster-wide transactions](../../client-api/session/clust
 where you prefer to get failure if the transaction cannot be persisted to a majority of the nodes in the cluster. In other words, this feature is for the scenarios where you want to favor consistency over availability.
 
 For cluster-wide transactions, RavenDB uses the [Raft](../../server/clustering/rachis/what-is-rachis#what-is-raft-?) protocol. It ensures that the transaction is acknowledged by a majority of the nodes in
-the cluster and upon commit, will be visible on any node that you'll use henceforth. Like single-node transactions, RavenDB requires that you submit the cluster-wide transaction as a single request to a database 
-of all the changes you want to commit. 
+the cluster and upon commit, will be visible on any node that you'll use henceforth. Like single-node transactions, RavenDB requires that you submit the cluster-wide transaction as a single request of all the changes you want to commit to a database. 
 
 Cluster-wide transactions has the notion of [atomic guards](../../session/cluster-transaction/atomic-guards) to prevent an overwrite of a document modified in a cluster transaction by changed made in another cluster transaction.
 
@@ -164,7 +164,7 @@ In RavenDB all actions performed on documents are fully ACID. An each document o
 * _Durability_ - If an operation has completed successfully, it was fsync'ed to disk. Reads will never return any data that hasn't been flushed to disk.
 
 All of these constraints are ensured for a single request to a database when you use [a session](../../session/what-is-a-session-and-how-does-it-work). In particular, it means that each `Load` call is a separate transaction and the
-[`SaveChanges`](../session/saving-changes) call will store all documents modified within a session in a single transaction.
+[`SaveChanges`](../session/saving-changes) call will store all documents created, deleted or modified within a session in a single transaction.
 
 
 {PANEL/}
@@ -181,16 +181,16 @@ The transaction model is different when indexes are involved, because indexes ar
 
 {PANEL/}
 
-{PANEL: Consistency and isolation with the usage of the session}
+{PANEL: Consistency and isolation with the usage of Client API Session}
 
 #### Single request
 
 The operations executed on documents are executed in ACID transactions. This applies to actions executed in a single HTTP request. As described above there are options to send a [script](../../client-api/operations/patching/single-document) that reads and modifies data in single unit
-and it is executed in a single server side transaction hece it provides _Serializable_ isolation in a single-node model and _Cursor Stability_ in a multi-master model (it requires a conflict resolver to be defined, otherwise if offers _Read Committed_).
+and it is executed in a single server side transaction hece it provides _Serializable_ isolation in a single-node model and _Cursor Stability_ in a multi-master model (it requires a conflict resolver to be defined, otherwise it offers   _Read Committed_).
 
 #### Multiple requests
 
-Although the typicall interaction with a database with the usage of the session involves multiple requests (loading the data and saving it after altering). What are the guarantees when you use the session and 
+The typicall interaction with a database via the usage of the session involves multiple requests (loading the data and saving it after altering). What are the guarantees when you use the session and 
 execute multiple calls to the database? It depends on the configuration of the session.
 
 * The interaction with a database involving multiple requests, with the usage of the session in its default configuration, provides _Read Committed_ for both models - single node and multi-master.
@@ -209,4 +209,4 @@ multiple requests to a database. Write operations executed in single `SaveChange
 
 - [Storage Engine](../../server/storage/storage-engine)
 - [What is a Session and How Does it Work](../../session/what-is-a-session-and-how-does-it-work)
-- [optimistic concurrency](../../client-api/session/configuration/how-to-enable-optimistic-concurrency)
+- [Optimistic concurrency](../../client-api/session/configuration/how-to-enable-optimistic-concurrency)

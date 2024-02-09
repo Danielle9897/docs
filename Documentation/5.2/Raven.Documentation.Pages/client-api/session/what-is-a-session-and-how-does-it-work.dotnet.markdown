@@ -37,19 +37,19 @@
 {PANEL: Concept of the session}
 
 The session (`ISession` / `IAsyncDocumentSession`) is based on the [Unit of Work](https://martinfowler.com/eaaCatalog/unitOfWork.html) and [Identity Map](https://martinfowler.com/eaaCatalog/identityMap.html) patterns.
-It's a primary interface that your application will interacts with.
+It's a primary interface that your application will interact with.
 
 The session is container that allows you to load, create or update entities and it keeps track of changes. It means that upon a completion of a [business transaction](https://martinfowler.com/eaaCatalog/unitOfWork.html) 
-it allows to aggregate the modifications and send them back to a database.
+it aggregates the modifications and sends them back to a database.
 
-Note that a business transaction typically spans multiple requests such as load of documents or execution of queries but the modifications made within the session will be batched and sent together in a single (HTTP) request to a database.
+Note that a business transaction typically spans multiple requests such as loading of documents or execution of queries but the modifications made within the session will be batched and sent together in a single (HTTP) request to a database.
 
 The session is a pure client side object. Openning of the session does not create any connection to a database. Session state isn't reflected on the database side during its duration. 
 The changes are sent to a database only on an explicit user's request (see more about [saving changes](../../client-api/session/saving-changes)).
 
 {INFO: }
 
-RavenDB Client is a native way to interact with a RavenDB database. It _is not_ an Object–relational mapping (ORM) tool. Although if you're familiar with NHibernate of Entity Framework ORMs you'll recognize that
+RavenDB Client API is a native way to interact with a RavenDB database. It _is not_ an Object–relational mapping (ORM) tool. Although if you're familiar with NHibernate of Entity Framework ORMs you'll recognize that
 the session is equivalent of NHibernate's session and Entity Framework's DataContext which implement UoW pattern as well.
 
 {INFO/}
@@ -124,21 +124,21 @@ the session is equivalent of NHibernate's session and Entity Framework's DataCon
 
 #### Transactions
 
-* The client API not attempt to provide transactional semantics over the entire session. The session **does not** represent a transaction (nor a transaction scope) in terms of ACID transactions. 
+* The client API will not attempt to provide transactional semantics over the entire session. The session **does not** represent a transaction (nor a transaction scope) in terms of ACID transactions. 
   RavenDB provides transactions over individual request so each call made with the usage of the session will be processed in separate transaction on a database side. It applies to both reads and writes. 
 
 ##### Read transactions
 
 * Each call retrieving data from a database will generate a separate request - multiple requests means separate transactions.
 * You can read _multiple_ documents in a single request by using overloads of `Load()` method allowing to specify collection of IDs or a prefix of ID. Also a query which can return multiple documents is executed in a single request,
-  hece it's processed in a single read transaction. Also [includes](../../client-api/session/loading-entities#load-with-includes) allow to retrieve additional documents in a single request.
+  hence it's processed in a single read transaction. Also [includes](../../client-api/session/loading-entities#load-with-includes) allow to retrieve additional documents in a single request.
 
 ##### Write transactions
 
 * The batched operations that are sent in the `SaveChanges()` will complete transactionally since this call generates a single request to a database. 
   In other words, either all changes are saved as a **Single Atomic Transaction** or none of them are.  
   So once SaveChanges returns successfully, it is guaranteed that all changes are persisted to the database.  
-* The SaveChanges is the only time when a RavenDB client sends updates to the server from the Session, so you will experience a reduced number of network calls.
+* The SaveChanges is the only time when a RavenDB Client API sends updates to the server from the Session, so you will experience a reduced number of network calls.
 * In order to execute an operation which loads and updates a document in the same write transaction then the patching feature is the way to go. 
   Either with the usage of [JavaScript patch](../../client-api/operations/patching/single-document) syntax or [JSON Patch](../../client-api/operations/patching/json-patch-syntax) syntax.
 
