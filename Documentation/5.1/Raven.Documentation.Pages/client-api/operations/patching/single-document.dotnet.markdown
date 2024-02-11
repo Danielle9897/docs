@@ -7,7 +7,8 @@
   The whole operation is executed on the server-side and is useful as a performance enhancement or for 
   updating denormalized data in entities.
 
-* Since the operation is executed in a single request to a database, the patch command is performed in a single write [transaction](../../../client-api/faq/transaction-support).
+* Since the operation is executed in a single request to the database,  
+  the patch command is performed in a single write [transaction](../../../client-api/faq/transaction-support).  
 
 * The current page covers patch operations on single documents.
 

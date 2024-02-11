@@ -95,7 +95,8 @@ The patching of documents matching a specified query is run in batches of size 1
 
 {WARNING: Patching and Transaction} 
 
-The patching of documents matching a specified query is run in batches of size 1024. Each batch is handled in a separate write transaction.
+The patching of documents matching a specified query is run in batches of size 1024.  
+Each batch is handled in a separate write transaction.
 
 {WARNING/}
 
