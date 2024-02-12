@@ -6,9 +6,9 @@
 
 * In this page:
   * [ACID storage](../../client-api/faq/transaction-support#acid-storage)  
-  * [What is and what is not a transaction](../../client-api/faq/transaction-support#what-is-and-what-is-not-a-transaction)  
+  * [What is and what isn't a transaction](../../client-api/faq/transaction-support#what-is-and-what-isn)  
   * [Working with transactions in RavenDB ](../../client-api/faq/transaction-support#working-with-transactions-in-ravendb)
-     * [Single node model](../../client-api/faq/transaction-support#single-node-model)
+     * [Single-node model](../../client-api/faq/transaction-support#single-node-model)
      * [Multi-master model](../../client-api/faq/transaction-support#multi-master-model)
      * [Cluster-wide transactions](../../client-api/faq/transaction-support#cluster-wide-transactions)
   * [ACID for document operations](../../client-api/faq/transaction-support#acid-for-document-operations)
@@ -19,48 +19,59 @@
 
 ---
 
-{PANEL:ACID storage}
+{PANEL: ACID storage}
 
-All storage operations performed in RavenDB are fully ACID (Atomicity, Consistency, Isolation, Durability), this is because internally RavenDB used a custom made storage engine called *Voron*, which guarantees all the properties of the ACID, no matter if those are executed on document, index or cluster storage data.
+All storage operations performed in RavenDB are fully ACID-compliant (Atomicity, Consistency, Isolation, Durability),  
+this is because internally RavenDB uses a custom-made storage engine called [Voron](../../server/storage/storage-engine), 
+which guarantees all ACID properties, whether executed on document, index or local cluster data.
 
 {PANEL/}
 
-{PANEL:What is and what is not a transaction}
+{PANEL: What is and what isn't a transaction}
 
-* A transaction represents a set of operations executed against a database as a single, atomic and isolated unit. 
+* A transaction represents a set of operations executed against a database as a single, atomic, and isolated unit.
 
-* A transaction in RavenDB (read or write) is limited to a single HTTP request.  
+* In RavenDB, a transaction (read or write) is limited to the scope of a __single__ HTTP request.
 
-* The terms "ACID transaction" or "transaction" refer to the storage engine transactions. Whenever a database receives an operation or batch of operations in a request, it will wrap it in a storage transaction, execute the operations and commit the transaction.
+* The terms "ACID transaction" or "transaction" refer to the storage engine transactions. 
+  Whenever a database receives an operation or batch of operations in a request, it will wrap it in a "storage transaction",  
+  execute the operations and commit the transaction.
 
-* RavenDB ensures that for a single HTTP request, all the operations in that request are transactional.    
-  * If you are doing a read operation, all the data within that request is read using Snapshot Isolation.  
-  * If you are performing a write operation, it is using Serializable Isolation.   
+* RavenDB ensures that for a single HTTP request, all the operations in that request are transactional.  
+  It employs _Serializable_ isolation for both read and write operations.
 
-* RavenDB doesn't support a transaction over more than a single HTTP request so the interactive transactions are not implemented by RavenDB (see below for the reasoning behind this).  
+* RavenDB doesn't support a fully ACID transaction spanning __multiple__ HTTP requests so interactive transactions are not implemented by RavenDB. 
+  (See [below](../../client-api/faq/transaction-support#no-support-for-interactive-transactions) for the reasoning behind this decision).  
 
-* The [Client API Session](../../client-api/session/what-is-a-session-and-how-does-it-work) is pure Client API object and does not represent a transaction hence it's not meant to provide interactive transaction semantics. There isn't any server-side reference to the session.
+* The [Client API Session](../../client-api/session/what-is-a-session-and-how-does-it-work) is a pure Client API object and does not represent a transaction, 
+  thus it is not meant to provide interactive transaction semantics. 
+  It is entirely managed on the client side without maintaining a corresponding session state on the server. 
+  The server does not reference or keep track of the session context.
 
 {PANEL/}
 
 {PANEL: Working with transactions in RavenDB}
 
-### Single node model
+### Single-node model
 
 Transactional behavior with RavenDB is divided into two modes:
 
-* In the first mode a user can perform all requested operations (read or write) in a single request. This can be achieved by [running a script](../../client-api/operations/patching/single-document).
-  However, this is not something that most users typically do. It's rather for specific scenarios where you need to read / make decisions / update document (or documents) within the scope of a single transaction.
-  If you want to just mutate a document in a transaction, [JSON Patch](../../client-api/operations/patching/json-patch-syntax) allows you to do that.
+* __Single requests__:  
+  In this mode, a user can perform all requested operations (read or write) in a single request.  
+  This can be achieved by [running a script](../../client-api/operations/patching/single-document), although it's not commonly used by most users.  
+  Using such a script is rather intended for specific scenarios where you need to read / make decisions / update document(s) within the scope of a single transaction.  
+  If you only need to modify a document in a transaction, [JSON Patch](../../client-api/operations/patching/json-patch-syntax) allows you to do that.
 
-* The behavior over multiple requests. With RavenDB, you cannot have a single transaction that spans all those operations with multiple requests. 
-  Instead, you are expected to utilize [optimistic concurrency](../../client-api/session/configuration/how-to-enable-optimistic-concurrency) to get the same effective behavior.
-  Your changes will get committed only if no one changed the data you are modifying in the meantime. 
+* __Multiple requests__:  
+  RavenDB does not support a single transaction that spans all requested operations within multiple requests.  
+  Instead, users are expected to utilize [optimistic concurrency](../../client-api/session/configuration/how-to-enable-optimistic-concurrency) to achieve similar behavior.  
+  Your changes will get committed only if no one else has changed the data you are modifying in the meantime. 
 
 #### No support for interactive transactions
 
-RavenDB client uses HTTP to communicate with RavenDB server. It means that RavenDB doesn't allow you to open a transaction on the server side, make multiple operations over a network connection and then commit or roll it back. 
-This model is called interactive transactions model. It is incredibly costly model. Both in terms of engine complexity, the impact on the overall performance of the system and the capabilities you are able to offer.
+RavenDB client uses HTTP to communicate with the RavenDB server. 
+It means that RavenDB doesn't allow you to open a transaction on the server side, make multiple operations over a network connection, and then commit or roll it back.  
+This model, known as the interactive transactions model, is incredibly costly. Both in terms of engine complexity and the impact on the overall performance of the system.
 
 {INFO: }
 
@@ -69,115 +80,157 @@ This is because the server needs to maintain locks and state across potentially 
 
 {INFO/}
 
-Key to that design decision is that we are able to provide the same guarantees about the state of your data without needing to pay the costs of interactive transactions.
-It is a model that is distinct from the classical SQL one, of interactive transactions.
+RavenDB's approach differs from the classical SQL model, which relies on interactive transactions.  
+Key to that design decision is our ability to provide the same guarantees about the state of your data without experiencing the overhead of interactive transactions.  
 
 #### Batch transaction model
 
-RavenDB uses the batch transaction model, where RavenDB client submits all the operations to be run in a single transaction in one network call. 
+RavenDB uses the batch transaction model, where a RavenDB client submits all the operations to be run in a single transaction in one network call. 
 This allows the storage engine inside RavenDB to avoid holding locks for an extended period of time and gives plenty of room to optimize the performance.
 
-The reason for this decision is the usual interaction model in which RavenDB is used. It is used as the transactional system of record for business applications, where you'll commonly need to show data to the user,
-let them make changes to it and then save it. You have one request that loads the data and show that to the user, some "think time", and then an set of updates comes from the user, which are then persisted to the database.
-That model fits the batch transaction model a lot more closely than the interactive one. There is no need to hold a transaction open for the "think time" of the user. 
+This decision is based on the typical interaction pattern by which RavenDB is used.  
+RavenDB serves as a transactional system of record for business applications, where the common workflow involves presenting data to users, 
+allowing them to make modifications, and subsequently save these changes.  
+A single request loads the data which is then presented to the user. 
+After a period of contemplation or "think time," the user submits a set of updates, which are then saved to the database.  
+This model fits the batch transaction model a lot more closely than the interactive one, as there's no necessity to keep a transaction open during the user's "think time."
 
-All the changes that were sent via _SaveChanges_ are persisted in a single unit, and if you care to avoid lost updates, you need to ensure you use [optimistic concurrency](../../client-api/session/configuration/how-to-enable-optimistic-concurrency)
-(turned off by default), across all sessions that modify documents which you want to assure they won't by affected by the lost update problem.
+All changes that are sent via _SaveChanges_ are persisted in a single unit.  
+If you modify documents concurrently and you want to assure they won't by affected by the lost update problem,  
+then you must enable [optimistic concurrency](../../client-api/session/configuration/how-to-enable-optimistic-concurrency) (turned off by default) across all sessions that modify those documents.
 
 <hr/>
 
 ### Multi-master model
 
-RavenDB uses the multi-master model. You can make writes to any node in the cluster, and they'll propagate to the other nodes in an asynchronous manner via the [replication](../../server/clustering/replication/replication). 
+RavenDB employs the multi-master model, allowing writes to be made to any node in the cluster.  
+These writes are then propagated asynchronously to the other nodes via [replication](../../server/clustering/replication/replication). 
 
 The interaction of transactions and distributed work is anything but trivial. Let's start from the obvious problem:
 
-* RavenDB allows you to perform write operations on multiple nodes simultaneously.
+* RavenDB allows you to perform concurrent write operations on multiple nodes.  
 * RavenDB explicitly allows you to write to a node that was partitioned from the rest of the network.
 
-Taken together, this violates the [CAP theorem](https://en.wikipedia.org/wiki/CAP_theorem). Because you cannot be both consistent and tolerant to partitions at the same time. Sadly, we weren't able to come with a workaround to CAP.
-RavenDB's answer to distributed transactional work is nuanced and was designed to give you as the user the choice so you can utilize RavenDB for each of your scenarios.
+Taken together, this violates the [CAP theorem](https://en.wikipedia.org/wiki/CAP_theorem) 
+which states that a system can only provide 2 out of 3 guarantees around consistency, availability, and partition tolerance.
 
-When running in a multi-node setup, RavenDB still uses transactions. However, they are single-node transactions. That means that the set of changes that you write in a transaction is 
-committed to the node you are writing to only. It will then asynchronously replicate to the other nodes. 
+RavenDB's answer to distributed transactional work is nuanced and was designed to give you as the user the choice  
+so you can utilize RavenDB for each of your scenarios:  
+
+* Single-node operations are available and partition tolerant (AP) but cannot meet the consistency guarantee.
+* If you need to guarantee uniqueness or replicate the data for redundancy across more than one node,  
+  you can choose to have higher consistency at the cost of availability (CP).
+
+When running in a multi-node setup, RavenDB still uses transactions. However, they are single-node transactions.  
+That means that the set of changes that you write in a transaction is committed only to the node you are writing to.  
+It will then asynchronously replicate to the other nodes.  
+To achieve consistency across the entire cluster please refer to the [Cluster-wide transactions](../../client-api/faq/transaction-support#cluster-wide-transactions) section below.  
 
 #### Replication conflicts
 
-This is an important observation, because you can get into situations where two clients wrote (even with [optimistic concurrency](../../client-api/session/configuration/how-to-enable-optimistic-concurrency) turned on) to 
-the same document and both of them committed successfully (each one to a separate node). RavenDB attempts to minimize this situation by designating a [preferred node](../../client-api/configuration/load-balance/overview#the-preferred-node) for writes for each database, 
-but it doesn't alleviate this issue. This is a consideration you have to take into account when using single node transactions in RavenDB (see below for running a [cluster-wide transaction](../../client-api/faq/transaction-support#cluster-wide-transactions)).
+This is an important observation because you can get into situations where two clients wrote (even with [optimistic concurrency](../../client-api/session/configuration/how-to-enable-optimistic-concurrency) turned on)
+to the same document and both of them committed successfully (each one to a separate node). 
+RavenDB attempts to minimize this situation by designating a [preferred node](../../client-api/configuration/load-balance/overview#the-preferred-node) for writes for each database,  
+but since writing to the preferred node isn't guaranteed, this might not alleviate the issue.
 
 In such a case, the data will replicate across the cluster, and RavenDB will detect that there were [conflicting](../../server/clustering/replication/replication-conflicts) modifications to the document. 
-It will then apply the [conflict resolution](../../studio/database/settings/conflict-resolution) strategy that you choose. That can include selecting manual resolution, 
-running a [merge script](../../server/clustering/replication/replication-conflicts#conflict-resolution-script) to reconcile the conflicting versions or simply selecting the latest version.
-You are in control of this behavior. 
+It will then apply the [conflict resolution](../../studio/database/settings/conflict-resolution) strategy that you choose.  
+That can include selecting a manual resolution, running a [resolution script](../../server/clustering/replication/replication-conflicts#conflict-resolution-script) to reconcile the conflicting versions,  
+or simply selecting the latest version. You are in control of this behavior. 
 
-This behavior was designed under the assumption that if you are writing data to the database, you want to have it persisted. RavenDB will do its utmost to provide that to you, 
-allowing you to write to the database even in the case of partitions or partial failure states. 
+This behavior was influenced by the [Dynamo paper](https://dl.acm.org/doi/10.1145/1323293.1294281) which emphasizes the importance of writes.  
+The assumption is that if you are writing data to the database, you expect it to be persisted.
+
+RavenDB will do its utmost to provide that to you, allowing you to write to the database even in the case of partitions or partial failure states. 
+However, handling replication conflicts is a consideration you have to take into account when using single-node transactions in RavenDB (see below for running a [cluster-wide transaction](../../client-api/faq/transaction-support#cluster-wide-transactions)).
 
 {WARNING: Lost updates}
 
-If no conflict resolution script is defined for a collection, then by default RavenDB resolves a conflict using the latest version based on the `@last-modified` property of conflicted versions of a document.
+If no conflict resolution script is defined for a collection, then by default RavenDB resolves the conflict using the latest version based on the `@last-modified` property of conflicted versions of the document.  
 That might result in the lost update anomaly.
 
-If you care about avoiding lost updates, you need to ensure you have the conflict resolution script defined accordingly or use [cluster-wide transaction](../../client-api/faq/transaction-support#cluster-wide-transactions).
+If you care about avoiding lost updates, you need to ensure you have the conflict resolution script defined accordingly or use a [cluster-wide transaction](../../client-api/faq/transaction-support#cluster-wide-transactions).
 
 {WARNING/}
 
 #### Replication & transaction boundary
 
-An important aspect to RavenDB's transactional behavior with regards to asynchronous replication. When replicating modifications to another server, 
-RavenDB will ensure that the [transaction boundaries](../../server/clustering/replication/replication#replication-&-transaction-boundary) are kept even when replicating to another server. 
-In other words, if you wrote two documents to one node, you are guaranteed that upon seeing the changes to one of those documents in another node, you'll also read the changes on the other one (or a later version). 
+The following is an important aspect to RavenDB's transactional behavior with regards to asynchronous replication.  
+
+When replicating modifications to another server, RavenDB will ensure that the [transaction boundaries](../../server/clustering/replication/replication#replication-&-transaction-boundary) are maintained.  
+If there are several document modifications in the same transaction they will be sent in the same replication batch, keeping the transaction boundary on the destination as well.  
+
+However, a special attention is needed when a document is modified in two separate transactions but the replication of the first transaction has not occurred yet. 
+Read more about that in [How revisions replication help data consistency](../../server/clustering/replication/replication#how-revisions-replication-help-data-consistency).
 
 <hr/>
 
 ### Cluster-wide transactions
 
-RavenDB also supports [cluster-wide transactions](../../client-api/session/cluster-transaction/overview). This feature modifies the way RavenDB commits a transaction, and it is meant to address scenarios 
-where you prefer to get failure if the transaction cannot be persisted to a majority of the nodes in the cluster. In other words, this feature is for the scenarios where you want to favor consistency over availability.
+RavenDB also supports [cluster-wide transactions](../../client-api/session/cluster-transaction/overview).  
+This feature modifies the way RavenDB commits a transaction, and it is meant to address scenarios where you prefer to get a failure if the transaction cannot be persisted to a majority of the nodes in the cluster.  
+In other words, this feature is for scenarios where you want to favor consistency over availability.
 
-For cluster-wide transactions, RavenDB uses the [Raft](../../server/clustering/rachis/what-is-rachis#what-is-raft-?) protocol. It ensures that the transaction is acknowledged by a majority of the nodes in
-the cluster and upon commit, will be visible on any node that you'll use henceforth. Like single-node transactions, RavenDB requires that you submit the cluster-wide transaction as a single request of all the changes you want to commit to a database. 
+For cluster-wide transactions, RavenDB uses the [Raft](../../server/clustering/rachis/what-is-rachis#what-is-raft-?) protocol. 
+This protocol ensures that the transaction is acknowledged by a majority of the nodes in the cluster and once committed, the changes will be visible on any node that you'll use henceforth.  
 
-Cluster-wide transactions has the notion of [atomic guards](../../session/cluster-transaction/atomic-guards) to prevent an overwrite of a document modified in a cluster transaction by changed made in another cluster transaction.
+Similar to single-node transactions, RavenDB requires that you submit the cluster-wide transaction as a single request of all the changes you want to commit to the database. 
+
+Cluster-wide transactions have the notion of [atomic guards](../../client-api/session/cluster-transaction/atomic-guards) to prevent an overwrite of a document modified in a cluster transaction by a change made in another cluster transaction.
 
 {INFO: }
 
-The usage of atomic guards makes that cluster-wide transactions are conflict free. There is no way to make a conflict between two versions of the same document. If a document got updated meanwhile by someone else then
-`ConcurrencyException` will be thrown.
+The usage of atomic guards makes cluster-wide transactions conflict-free.  
+There is no way to make a conflict between two versions of the same document.  
+If a document got updated meanwhile by someone else then a `ConcurrencyException` will be thrown.
 
 {INFO/}
 
 {PANEL/}
 
-{PANEL:ACID for document operations}
+{PANEL: ACID for document operations}
 
-In RavenDB all actions performed on documents are fully ACID. An each document operation or a batch of operations applied to a set of documents sent in a single HTTP request will execute in a single transaction. The ACID properties of RavenDB are:
+In RavenDB all actions performed on documents are fully ACID. 
+Each document operation or a batch of operations applied to a set of documents sent in a single HTTP request will execute in a single transaction.  
+The ACID properties of RavenDB are:  
 
-* _Atomicity_  - All operations are atomic. Either they succeed or fail, not midway operation. In particular, operations on multiple documents will all happen atomically, all the way or none at all.
+* __Atomicity__  
+  All operations are atomic. Either they fully succeed or fail without any partial execution. 
+  In particular, operations on multiple documents will be carried out atomically, meaning they are either completed entirely or not executed at all.
 
-* _Consistency and Isolation / Consistency of Scans_ - In a single transaction, all operations operate under snapshot isolation. Even if you access multiple documents, you'll get all of their state as it was in the beginning of the request.
+* __Consistency and Isolation / Consistency of Scans__  
+  Within a single transaction, all operations are performed under _Snapshot_ isolation. 
+  This ensures that even if you access multiple documents, you'll get all of their state exactly as it was at the beginning of the request.
 
-* _Visibility_ - All transactions are immediately made available on commit. Thus, if a transaction is commit after updating two docs, you'll always see the updates to those two docs at the same time. (That is, you either see the updates to both, or you don't see the update to either one).
+* __Visibility__  
+  All transactions are immediately made available upon commit.  
+  Therefore, if a transaction updates two documents and is committed, you will always see the updates to both documents at the same time.
+  That is, you either see the updates to both, or you don't see the update to either one.
 
-* _Durability_ - If an operation has completed successfully, it was fsync'ed to disk. Reads will never return any data that hasn't been flushed to disk.
+* __Durability__   
+  If an operation has been completed successfully, it is fsync'ed to disk.  
+  Reads will never return any data that has not been flushed to disk.
 
-All of these constraints are ensured for a single request to a database when you use [a session](../../session/what-is-a-session-and-how-does-it-work). In particular, it means that each `Load` call is a separate transaction and the
-[`SaveChanges`](../session/saving-changes) call will store all documents created, deleted or modified within a session in a single transaction.
-
+All of these constraints are guaranteed for each individual request made to the database when using a [Session](../../client-api/session/what-is-a-session-and-how-does-it-work).  
+In particular, every `Load` call is a separate transaction, and the [`SaveChanges`](../../client-api/session/saving-changes) 
+call will encapsulate all documents created, deleted, or modified within the session into a single transaction.
 
 {PANEL/}
 
-{PANEL:BASE for query operations}
+{PANEL: BASE for query operations}
 
-The transaction model is different when indexes are involved, because indexes are BASE (Basically Available, Soft state, Eventual consistency), not ACID. Then the following constraints are applied to query operations:
+The transaction model is different when indexes are involved, because indexes are BASE (Basically Available, Soft state, Eventual consistency), not ACID. 
+The following constraints are applied to query operations:
 
-* _Basically Available_ - Index query results will be always available but they might be stale.
+* __Basically Available__  
+  Index query results will be always available but they might be stale.
 
-* _Soft state_ - The state of the system could change over the time because some amount of time is needed to perform the indexing. This is an incremental operation the less documents remains to index, the more accurate index results we have.
+* __Soft state__  
+  The state of the system could change over time because some amount of time is needed to perform the indexing. 
+  This is an incremental operation; the fewer documents remain to index, the more accurate index results we have.
 
-* _Eventual consistency_ - The database will eventually become consistent once it stops receiving new documents and the indexing operation finishes.
+* __Eventual consistency__  
+  The database will eventually become consistent once it stops receiving new documents and the indexing operation finishes.
 
 {PANEL/}
 
@@ -185,21 +238,30 @@ The transaction model is different when indexes are involved, because indexes ar
 
 #### Single request
 
-The operations executed on documents are executed in ACID transactions. This applies to actions executed in a single HTTP request. As described above there are options to send a [script](../../client-api/operations/patching/single-document) that reads and modifies data in single unit
-and it is executed in a single server side transaction hece it provides _Serializable_ isolation in a single-node model and _Cursor Stability_ in a multi-master model (it requires a conflict resolver to be defined, otherwise it offers   _Read Committed_).
+In a single HTTP request, the operations performed on documents are executed within ACID transactions.
+
+As described above, you can send a [patching script](../../client-api/operations/patching/single-document) that reads and modifies data in a single unit.  
+The script actions are executed in a single server-side transaction, thus providing _Serializable_ isolation in a single-node model and _Cursor Stability_ in a multi-master model 
+(it does require a conflict resolver to be defined, otherwise it offers  _Read Committed_).
 
 #### Multiple requests
 
-The typicall interaction with a database via the usage of the session involves multiple requests (loading the data and saving it after altering). What are the guarantees when you use the session and 
-execute multiple calls to the database? It depends on the configuration of the session.
+A typical interaction with a database via the session involves multiple requests to the database (loading the data and saving it after altering).
+The guarantees provided depend on the session's configuration:
 
-* The interaction with a database involving multiple requests, with the usage of the session in its default configuration, provides _Read Committed_ for both models - single node and multi-master.
+* __Default configuration__:  
+  With the session in its default configuration, where optimistic concurrency is not enabled,  
+  the guarantees are _Read Committed_ for both single-node and multi-master models.
 
-* By enabling the [optimistic concurrency](../../client-api/session/configuration/how-to-enable-optimistic-concurrency) in the session you prevent lost update so it provides _Cursor Stability_ 
-(in multi-master a conflict resolver needs to be defined, otherwise _Read Committed_ is guaranteed).
+* __Optimistic Concurrency__:  
+  Enabling [optimistic concurrency](../../client-api/session/configuration/how-to-enable-optimistic-concurrency) in the session prevents lost updates, ensuring _Cursor Stability_.  
+  In the multi-master model, however, a conflict resolver must be defined to achieve _Cursor Stability_;  
+  otherwise, _Read Committed_ is guaranteed.
 
-* If the session is configured to use `ClusterWide` transaction mode then the optimisic concurrency and the script patching isn't available. But then you have _Cursor Stability_ even for interactions spanning 
-multiple requests to a database. Write operations executed in single `SaveChanges()` guarantee _Serializable_ isolation same as in the `SingleNode` transaction mode.   
+* __Cluster-wide transaction mode__:  
+  If the session is configured to use a cluster-wide transaction mode, optimistic concurrency and script patching are unavailable. 
+  Nevertheless, _Cursor Stability_ is ensured even for interactions spanning multiple requests to the database. 
+  Write operations executed within a single request via `SaveChanges()` call guarantee _Serializable_ isolation, similar to the single-node transaction mode. 
 
 {PANEL/}
 
@@ -208,5 +270,5 @@ multiple requests to a database. Write operations executed in single `SaveChange
 ### Server
 
 - [Storage Engine](../../server/storage/storage-engine)
-- [What is a Session and How Does it Work](../../session/what-is-a-session-and-how-does-it-work)
+- [What is a Session and How Does it Work](../../client-api/session/what-is-a-session-and-how-does-it-work)
 - [Optimistic concurrency](../../client-api/session/configuration/how-to-enable-optimistic-concurrency)
