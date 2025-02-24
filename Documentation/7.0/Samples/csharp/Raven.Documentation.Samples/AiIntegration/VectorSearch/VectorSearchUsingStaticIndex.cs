@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Raven.Client.Documents;
@@ -307,6 +308,103 @@ namespace Raven.Documentation.Samples.AiIntegration
                 Fields.Add("Name", new IndexFieldOptions()
                 {
                     Indexing = FieldIndexing.Search
+                });
+        
+                SearchEngineType = Raven.Client.Documents.Indexes.SearchEngineType.Corax;
+            }
+        }
+        #endregion
+        
+        #region Index_13
+        public class Orders_ByCountryAndProductVectors :
+            AbstractIndexCreationTask<Order, Orders_ByCountryAndProductVectors.IndexEntry>
+        {
+            public class IndexEntry
+            {
+                public string ShipToCountry { get; set; }
+                public int OrdersCount { get; set; }
+                public object AccumulatedVectors { get; set; }
+            }
+
+            public Orders_ByCountryAndProductVectors()
+            {
+                // Map phase:
+                // Fan-out over each order line and load the corresponding product document.
+                Map = orders => from order in orders
+                    from line in order.Lines
+                    let product = LoadDocument<Product>(line.Product)
+                    select new IndexEntry
+                    {
+                        ShipToCountry = order.ShipTo.Country,
+                        OrdersCount = 1,
+                        AccumulatedVectors = product.Name 
+                    };
+
+                // Reduce phase:
+                // * Group by ShipToCountry
+                // * Count the orders by the destination country
+                // * Accumulate the vectors using CreateVector()
+                Reduce = results => from result in results
+                    group result by result.ShipToCountry into g
+                    select new IndexEntry
+                    {
+                        ShipToCountry = g.Key,
+                        OrdersCount = g.Sum(x => x.OrdersCount),
+                        // Accumulate vectors per country
+                        AccumulatedVectors = CreateVector(g.Select(x => 
+                            (string)x.AccumulatedVectors).ToArray())
+                    };
+                
+                // Customize the vector field options:
+                VectorIndexes.Add(x => x.AccumulatedVectors,
+                    new VectorOptions()
+                    {
+                        SourceEmbeddingType = VectorEmbeddingType.Text, 
+                        DestinationEmbeddingType = VectorEmbeddingType.Single,
+                    });
+            
+                SearchEngineType = Raven.Client.Documents.Indexes.SearchEngineType.Corax;
+            }
+        }
+        #endregion
+        
+        #region Index_14
+        public class Orders_ByCountryAndProductVectors_JS : AbstractJavaScriptIndexCreationTask
+        {
+            public Orders_ByCountryAndProductVectors_JS()
+            {
+                Maps = new HashSet<string>()
+                {
+                    @"map('Orders', function (order) {
+                          return order.Lines.map(line => {
+                              var product = load(line.Product);
+                              return {
+                                  ShipToCountry: order.ShipTo.Country,
+                                  OrdersCount: 1,
+                                  AccumulatedVectors: product.Name
+                              };
+                          });
+                    })"
+                };
+                
+                Reduce = @"
+                    groupBy(x => x.ShipToCountry)
+                    .aggregate(g => {
+                        return {
+                            ShipToCountry: g.key,
+                            OrdersCount: g.values.reduce((sum, x) => sum + x.OrdersCount, 0),
+                            AccumulatedVectors: createVector(g.values.map(x => x.AccumulatedVectors))
+                        };
+                    })";
+            
+                Fields = new();
+                Fields.Add("AccumulatedVectors", new IndexFieldOptions()
+                {
+                    Vector = new VectorOptions()
+                    {
+                        SourceEmbeddingType = VectorEmbeddingType.Text, 
+                        DestinationEmbeddingType = VectorEmbeddingType.Single
+                    }
                 });
         
                 SearchEngineType = Raven.Client.Documents.Indexes.SearchEngineType.Corax;
@@ -892,6 +990,49 @@ namespace Raven.Documentation.Samples.AiIntegration
                         .AddParameter("searchTerm2", "italian")
                         .WaitForNonStaleResults()
                         .ToListAsync();
+                    #endregion
+                }
+                
+                using (var session = store.OpenSession())
+                {
+                    #region query_12
+                    var results = session
+                        .Query<Orders_ByCountryAndProductVectors.IndexEntry, Orders_ByCountryAndProductVectors>()
+                         // Filter results by destination country
+                        .Where(x => x.ShipToCountry == "France")
+                         // Search for orders containing product names similar to "italian food"
+                        .VectorSearch(x => x.WithField(
+                            field => field.AccumulatedVectors),
+                            searchTerm => searchTerm.ByText("italian food"))
+                        .ToList();
+                    
+                    // Process the results.
+                    foreach (var entry in results)
+                    {
+                        Console.WriteLine(
+                            $"Country: {entry.ShipToCountry}, Orders Count: {entry.OrdersCount}"
+                        );
+                    }
+                    #endregion
+                }
+                
+                using (var asyncSession = store.OpenAsyncSession())
+                {
+                    #region query_12_async
+                    var results = await asyncSession
+                        .Query<Orders_ByCountryAndProductVectors.IndexEntry, Orders_ByCountryAndProductVectors>()
+                        .Where(x => x.ShipToCountry == "France")
+                        .VectorSearch(x => x.WithField(
+                            field => field.AccumulatedVectors),
+                            searchTerm => searchTerm.ByText("italian food"))
+                        .ToListAsync();
+                    
+                    foreach (var entry in results)
+                    {
+                        Console.WriteLine(
+                            $"Country: {entry.ShipToCountry}, Orders Count: {entry.OrdersCount}"
+                        );
+                    }
                     #endregion
                 }
             }

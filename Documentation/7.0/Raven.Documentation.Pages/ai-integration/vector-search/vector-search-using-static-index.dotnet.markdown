@@ -20,6 +20,7 @@
     * [Indexing vector data - TEXT](../../ai-integration/vector-search/vector-search-using-static-index#indexing-vector-data---text)
     * [Indexing vector data - NUMERICAL](../../ai-integration/vector-search/vector-search-using-static-index#indexing-vector-data---numerical)
     * [Indexing multiple field types](../../ai-integration/vector-search/vector-search-using-static-index#indexing-multiple-field-types)
+    * [Indexing vector data with a Map-Reduce index](../../ai-integration/vector-search/vector-search-using-static-index#indexing-vector-data-with-a-map-reduce-index)
     * [Define a vector field in the Studio](../../ai-integration/vector-search/vector-search-using-static-index#define-a-vector-field-in-the-studio)
 
 {NOTE/}
@@ -264,6 +265,44 @@ where PricePerUnit > $minPrice
 or search(Name, $searchTerm1)
 or vector.search(VectorFromText, $searchTerm2, 0.8)
 { "minPrice" : 200, "searchTerm1" : "Alice", "searchTerm2": "italian" }
+{CODE-TAB-BLOCK/}
+{CODE-TABS/}
+
+{PANEL/}
+
+{PANEL: Indexing vector data with a Map-Reduce index}
+
+* In a Map-Reduce index you can define a vector field only in the **Reduce** phase.
+  This field accumulates vectors from the **Map** phase, allowing multiple vectors to be collected under a single entry.
+
+* The following example demonstrates how to group orders by shipping country while accumulating vector representations of the products shipped to each country.
+
+* Map phase:  
+  Each order document contains multiple order lines,  
+  so a [fanout](../../indexes/indexing-nested-data#fanout-index---multiple-index-entries-per-document)
+  approach is used in the Map phase to process each line separately.
+
+* Reduce phase:  
+  During the Reduce phase, orders are grouped by country, the total order count is calculated,  
+  and the vectors are accumulated using `CreateVector()`.
+
+{CODE-TABS}
+{CODE-TAB:csharp:Map_Reduce_index index_13@AiIntegration\VectorSearch\VectorSearchUsingStaticIndex.cs /}
+{CODE-TAB:csharp:Map_Reduce_JS_index index_14@AiIntegration\VectorSearch\VectorSearchUsingStaticIndex.cs /}
+{CODE-TABS/}
+
+Query the Map-Reduce index:  
+
+* The query returns a list of index entries for the specified country where the accumulated vectors are semantically similar to the provided search term.
+* Each item in the results includes the shipping country and the total number of orders to that country. 
+
+{CODE-TABS}
+{CODE-TAB:csharp:DocumentQuery query_12@AiIntegration\VectorSearch\VectorSearchUsingStaticIndex.cs /}
+{CODE-TAB:csharp:DocumentQuery_async query_12_async@AiIntegration\VectorSearch\VectorSearchUsingStaticIndex.cs /}
+{CODE-TAB-BLOCK:sql:RQL}
+from index "Orders/ByCountryAndProductVectors"
+where (ShipToCountry = $country) and (vector.search(AccumulatedVectors, $searchTerm))
+{ "country" : "France", "searchTerm" : "italian food" }
 {CODE-TAB-BLOCK/}
 {CODE-TABS/}
 
