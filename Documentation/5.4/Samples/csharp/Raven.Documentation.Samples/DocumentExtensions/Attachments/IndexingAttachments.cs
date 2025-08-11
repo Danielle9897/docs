@@ -410,8 +410,8 @@ namespace Raven.Documentation.Samples.DocumentExtensions.Attachments
             #endregion
             
             #region syntax_3
-            // Returns a list of all attachments for the specified document.
-            public IEnumerable<IAttachmentObject> LoadAttachments(object doc);
+            // Returns a list of ALL attachments for the specified document.
+            public IEnumerable<IAttachmentObject> LoadAttachments(object document);
             #endregion
         }
 

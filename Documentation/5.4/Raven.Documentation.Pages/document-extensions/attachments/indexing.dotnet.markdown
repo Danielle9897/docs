@@ -174,6 +174,10 @@ where search(AttachmentContent, "Colorado Dallas") or AttachmentSize > 20000
 
 {CODE:csharp syntax_3@documentExtensions\attachments\IndexingAttachments.cs /}
 
+| Parameter           | Type      | Description                                      |
+|---------------------|-----------|--------------------------------------------------|
+| **document**        | `object`  | The document whose attachments you want to load. |
+
 {PANEL/}
 
 ## Related Articles
