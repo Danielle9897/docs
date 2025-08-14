@@ -15,24 +15,25 @@ import LanguageContent from "@site/src/components/LanguageContent";
 export const supportedLanguages = ["csharp", "java", "python", "php", "nodejs"];
 
 
-# Attachments: Deleting Attachments
+# Attachments: Deleting Attachments
+
 <LanguageSwitcher supportedLanguages={supportedLanguages} />
 <LanguageContent language="csharp">
 
 
 **Delete** from `session.Advanced.Attachments` is used to remove an attachment from a document.
 
-## Syntax
+## Syntax 333
 
-<TabItem value="DeleteSyntax" label="DeleteSyntax">
-<CodeBlock language="csharp">
-{`void Delete(string documentId, string name);
-void Delete(object entity, string name);
-`}
-</CodeBlock>
-</TabItem>
+    <TabItem value="DeleteSyntax" label="DeleteSyntax">
+        <CodeBlock language="csharp">
+            {`void Delete(string documentId, string name);
+            void Delete(object entity, string name);
+            `}
+        </CodeBlock>
+    </TabItem>
 
-## Example
+## Example 333
 
 <Tabs groupId='languageSyntax'>
 <TabItem value="Sync" label="Sync">
