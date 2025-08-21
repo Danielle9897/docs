@@ -764,12 +764,12 @@ IOrderedQueryable<T> OrderByDescending<T>(Expression<Func<T, object>> path, stri
 </CodeBlock>
 </TabItem>
 
-| Parameter      | Type                          | Description                                                                                                                                                                |
-|----------------|-------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| __path__       | `string`                      | The name of the field to sort by                                                                                                                                           |
-| __path__       | `Expression<Func<T, object>>` | A lambda expression to the field by which to sort                                                                                                                          |
-| __ordering__   | `QueryStatistics`             | The ordering type that will be used to sort the results:<br/>`OrderingType.Long`<br/>`OrderingType.Double`<br/>`OrderingType.AlphaNumeric`<br/>`OrderingType.String` (default) |
-| __sorterName__ | `string`                      | The name of your custom sorter class                                                                                                                                       |
+|  Parameter       |  Type                           |  Description                                                                                                                                                                     |     |
+| :---------------- | :------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--- |
+|  __path__        |  `string`                       |  The name of the field to sort by                                                                                                                                                |     |
+|  __path__        |  `Expression<Func<T, object>>`  |  A lambda expression to the field by which to sort                                                                                                                               |     |
+|  __ordering__    |  `QueryStatistics`              |  The ordering type that will be used to sort the results:<br/>`OrderingType.Long`<br/>`OrderingType.Double`<br/>`OrderingType.AlphaNumeric`<br/>`OrderingType.String` (default)  |     |
+|  __sorterName__  |  `string`                       |  The name of your custom sorter class                                                                                                                                            |     |
 
 
 
@@ -1192,10 +1192,10 @@ def order_by_descending(
 </CodeBlock>
 </TabItem>
 
-| Parameter      | Type                          | Description                                                                                                                                                                |
-|----------------|-------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **field**       | `str`                      | The name of the field to sort by                                                                                                                                           |
-| **sorter_name_or_ordering_type**       | `Union[str, OrderingType]` | The custom sorter class name<br/>**-or-**<br/>The results sorting ordering type<br/>Can be:<br/>`OrderingType.LONG`<br/>`OrderingType.DOUBLE`<br/>`OrderingType.ALPHA_NUMERIC`<br/>`OrderingType.STRING` (default) |
+|  Parameter                               |  Type                           |  Description                                                                                                                                                                                                         |     |
+| :---------------------------------------- | :------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--- |
+|  **field**                               |  `str`                          |  The name of the field to sort by                                                                                                                                                                                    |     |
+|  **sorter_name_or_ordering_type**        |  `Union[str, OrderingType]`     |  The custom sorter class name<br/>**-or-**<br/>The results sorting ordering type<br/>Can be:<br/>`OrderingType.LONG`<br/>`OrderingType.DOUBLE`<br/>`OrderingType.ALPHA_NUMERIC`<br/>`OrderingType.STRING` (default)  |     |
 
 
 
@@ -1783,10 +1783,10 @@ function orderByDescending(string $field, $sorterNameOrOrdering = null): Documen
 </CodeBlock>
 </TabItem>
 
-| Parameter  | Type     | Description          |
-|------------|----------|----------------------|
-| **$field** | `string` | The field to sort by |
-| **$sorterNameOrOrdering** | `string` | The ordering type to sort the results by:<br/>`OrderingType::long`<br/>`OrderingType::double`<br/>`OrderingType::alphaNumeric`<br/>`OrderingType::string` (default) |
+|  Parameter                  |  Type      |  Description                                                                                                                                                          |     |
+| :--------------------------- | :---------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--- |
+|  **$field**                 |  `string`  |  The field to sort by                                                                                                                                                 |     |
+|  **$sorterNameOrOrdering**  |  `string`  |  The ordering type to sort the results by:<br/>`OrderingType::long`<br/>`OrderingType::double`<br/>`OrderingType::alphaNumeric`<br/>`OrderingType::string` (default)  |     |
 
 
 
@@ -2258,11 +2258,11 @@ orderByDescending(field, options);
 </CodeBlock>
 </TabItem>
 
-| Parameter    | Type     | Description                                                                                                            |
-|--------------|----------|------------------------------------------------------------------------------------------------------------------------|
-| __field__    | `string` | The name of the field to sort by                                                                                       |
-| __ordering__ | `string` | The ordering type that will be used to sort the results:<br/>`Long`<br/>`Double`<br/>`AlphaNumeric`<br/>`String` (default) |
-| __options__  | `object` | An object that specifies the custom `sorterName`                                                                       |
+|  Parameter     |  Type      |  Description                                                                                                                 |     |
+| :-------------- | :---------- | :---------------------------------------------------------------------------------------------------------------------------- | :--- |
+|  __field__     |  `string`  |  The name of the field to sort by                                                                                            |     |
+|  __ordering__  |  `string`  |  The ordering type that will be used to sort the results:<br/>`Long`<br/>`Double`<br/>`AlphaNumeric`<br/>`String` (default)  |     |
+|  __options__   |  `object`  |  An object that specifies the custom `sorterName`                                                                            |     |
 
 
 

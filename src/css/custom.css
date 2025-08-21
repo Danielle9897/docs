@@ -18,7 +18,12 @@
   --ifm-color-primary-light: #0d34b5;
   --ifm-color-primary-lighter: #0e36be;
   --ifm-color-primary-lightest: #0f3bce;
-  --ifm-background-color: #ffffff;
+
+  /*  danielle - this is for the overall background */
+  /*--ifm-background-color: #ffffff;*/
+  /*--ifm-background-color: rgba(34, 34, 41, 0.92) !important;*/
+  --ifm-background-color: rgb(43, 43, 43) !important;
+
   --ifm-background-surface-color: #f6f6f6;
   --ifm-font-family-base:
     "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell,
@@ -64,7 +69,9 @@
 }
 
 [data-theme="dark"] .DocSearch {
+
   --docsearch-text-color: var(--ifm-font-color-base);
+
   --docsearch-muted-color: var(--ifm-color-secondary-darkest);
   --docsearch-container-background: rgba(47, 55, 69, 0.7);
   --docsearch-modal-background: var(--ifm-background-color);
@@ -293,14 +300,38 @@ code {
   --ifm-alert-border-color: rgba(75, 85, 99, 0.6);
 }
 
-[data-theme='dark'] .alert--secondary {
-  --ifm-alert-background-color: rgba(55, 65, 81, 0.3);
-  --ifm-alert-background-color-highlight: rgba(75, 85, 99, 0.5);
-  --ifm-alert-foreground-color: rgba(243, 244, 246, 0.9);
-  --ifm-alert-border-color: rgba(156, 163, 175, 0.6);
-}
-
 /* Custom margin-bottom for tabs and admonitions followed by other elements */
 [class^="tabItem"]:has(+ *), .theme-admonition:has(+ *) {
   @apply mb-4;
+}
+
+[data-theme='dark'] .alert--secondary {
+    --ifm-alert-background-color: rgba(55, 65, 81, 0.3);
+    --ifm-alert-background-color-highlight: rgba(75, 85, 99, 0.5);
+
+    /*  danielle - this is for the text in Note:*/
+    /*--ifm-alert-foreground-color: rgba(243, 244, 246, 0.9);*/
+    /*--ifm-alert-foreground-color: rgba(216, 220, 232, 0.84) !important;*/
+    --ifm-alert-foreground-color: rgb(232, 235, 246) !important;
+
+    --ifm-alert-border-color: rgba(156, 163, 175, 0.6);
+}
+
+/*  danielle- this is for overall text color*/
+:root[data-theme='dark'] {
+    /*--ifm-color-content: #dcdcdc !important;*/
+}
+
+/* danielle - for highlighting text */
+::selection { background-color: #b3d4fc; color: #0a0a0a; }
+:root[data-theme='dark'] ::selection { background-color: #12635c; color: #fff; }
+
+/* danielle - for links inside note: */
+:root[data-theme='dark'] .alert a:not(.button) {
+    color: rgb(73, 197, 225) !important;
+}
+
+/* danielle - lighter color for hr: */
+:root[data-theme='dark'] hr, .ifm-hr {
+  background-color: #bec3c94f !important;
 }

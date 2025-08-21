@@ -49,6 +49,9 @@ export const supportedLanguages = ["csharp"];
   * [Archived documents and patching](../data-archival/archived-documents-and-other-features.mdx#archived-documents-and-patching)
 
 </Admonition>
+
+---
+
 ## Archived documents and indexing
      
 * Indexing performance may decline as the database grows, since a larger number of documents increases indexing load, expands index size, and can eventually reduce query speed.
@@ -277,6 +280,7 @@ store.Maintenance.Send(new PutIndexesOperation(indexDefinition));
   </Tabs>
 
 </Admonition>
+
 ##### Configuring archived document processing for a static index - from the Studio
 
 You can configure how a static index handles archived documents directly from the Studio.  
@@ -295,7 +299,7 @@ This setting will **override** the global configuration defined by the [Indexing
 
 ![Processing options](./assets/processing-options.png)
 
-
+---
 
 ## Archived documents and querying
 
@@ -318,7 +322,7 @@ This setting will **override** the global configuration defined by the [Indexing
       * the explicit setting in the index definition, which overrides the global configuration key.
   * The index's archived data processing behavior can be modified after its creation using the Studio or the Client API.
 
-
+---
   
 ## Archived documents and subscriptions
 
@@ -396,7 +400,7 @@ This setting will **override** the global configuration defined by the [Subscrip
    * **Include Archived**: Process both archived and non-archived documents.
    * **Archived Only**: Process only archived documents.
 
-
+---
 
 ## Archived documents and document extensions
 
@@ -419,7 +423,7 @@ This setting will **override** the global configuration defined by the [Subscrip
   * No revision is created at the time the server archives a document, even if the Revisions feature is enabled.
   * However, if you modify an archived document (when Revisions are enabled), a revision is created for that document - and that revision is archived as well.
 
-
+---
 
 ## Archived documents and smuggler (export/import)
 
@@ -477,7 +481,7 @@ In this example, imported data **includes** archived documents:
 1. Go to **Tasks &gt; Import Data**.
 2. Toggle the **Include archived documents** option to control whether archived documents are included in the import.
 
-
+---
 
 ## Archived documents and expiration
 
@@ -507,7 +511,7 @@ In this example, imported data **includes** archived documents:
 </CodeBlock>
 </TabItem>
 
-
+---
 
 ## Archived documents and ETL
 
@@ -534,7 +538,7 @@ loadToOrders(this);
 </CodeBlock>
 </TabItem>
 
-
+---
 
 ## Archived documents and backup
 
@@ -544,7 +548,7 @@ loadToOrders(this);
 * When restoring a database from a backup, archived documents are restored as well,  
   and their archived status is preserved.
 
-
+---
 
 ## Archived documents and replication
 
@@ -552,7 +556,7 @@ Archived documents are included in [Internal](../server/clustering/replication/r
 [External](../server/clustering/replication/replication-overview.mdx#external-replication) replication, and [Hub/Sink](../server/clustering/replication/replication-overview.mdx#hubsink-replication) replication -   
 no special configuration is required.
 
-
+---
 
 ## Archived documents and patching
 
@@ -566,9 +570,6 @@ no special configuration is required.
 * When **cloning** an archived document using the `put` method within a patching script  
   (see this [clone document example](../client-api/operations/patching/single-document.mdx#clone-document)) the cloned document will Not be archived,  
   and the `@archived: true` property will be removed from the cloned document.
-
-
-
 
 </LanguageContent>
 

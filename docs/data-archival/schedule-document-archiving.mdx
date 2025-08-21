@@ -43,6 +43,9 @@ export const supportedLanguages = ["csharp"];
   * [Schedule MULTIPLE documents for archiving - from the Studio](../data-archival/schedule-document-archiving.mdx#schedule-multiple-documents-for-archiving---from-the-studio)
 
 </Admonition>
+
+---
+
 ## Schedule a SINGLE document for archiving - from the Client API
 
 To schedule a single document for archival from the Client API,  
@@ -93,7 +96,7 @@ add the `@archive-at` property directly to the document metadata as follows:
 
 Learn more about modifying the metadata of a document in [Modifying Document Metadata](../client-api/session/how-to/get-and-modify-entity-metadata.mdx).
 
-
+---
 
 ## Schedule a SINGLE document for archiving - from the Studio
 
@@ -109,7 +112,7 @@ Learn more about modifying the metadata of a document in [Modifying Document Met
    E.g.: `"@archive-at": "2025-06-25T14:00:00.0000000Z"`
 2. After saving the document, the Studio displays the time remaining until the document is archived.
 
-
+---
 
 ## Schedule MULTIPLE documents for archiving - from the Client API
 
@@ -264,7 +267,7 @@ await store.Operations.SendAsync(patchByQueryOp);
 
 To learn more about the `PatchByQueryOperation`, see [Set-based patch operations](../client-api/operations/patching/set-based.mdx).
 
-
+---
 
 ## Schedule MULTIPLE documents for archiving - from the Studio
 
@@ -284,8 +287,6 @@ performs the same operation as the [Client API example](../data-archival/schedul
 3. Click to execute the patch.
 4. You can test the patch on a sample document before executing the whole operation.  
    Learn more in [Test patch](../studio/database/documents/patch-view.mdx#test-patch).
-
-
 
 
 </LanguageContent>
