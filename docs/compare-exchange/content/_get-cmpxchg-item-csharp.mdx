@@ -1,0 +1,430 @@
+﻿import Admonition from '@theme/Admonition';
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import CodeBlock from '@theme/CodeBlock';
+
+<Admonition type="note" title="">
+
+* To retrieve an existing compare-exchange item via the Client API,  
+  use either a store operation or a cluster-wide session - as described below.  
+  A cluster-wide session also supports lazy retrieval.
+
+* To view existing compare-exchange items in the Studio, go to _Documents > Compare Exchange_,  
+  as described in [Ways to manage compare-exchange items](../compare-exchange/overview#ways-to-create-and-manage-compare-exchange-items).  
+
+* This article shows how to get a **single** compare-exchange item by its unique _key_.  
+  To get **multiple** items at once, see [Get multiple compare-exchange items](../compare-exchange/get-cmpxchg-items).
+
+* In this article:    
+  * [Get item via a **Cluster-Wide session**](../compare-exchange/get-cmpxchg-item#get-item-via-a-cluster-wide-session)
+    * [Get compare-exchange item](../compare-exchange/get-cmpxchg-item#get-compare-exchange-item)  
+    * [Get compare-exchange item lazily](../compare-exchange/get-cmpxchg-item#get-compare-exchange-item-lazily)  
+  * [Get item via a **Store operation**](../compare-exchange/get-cmpxchg-item#get-item-via-a-store-operation)
+    * [Get compare-exchange item that has a number value and metadata](../compare-exchange/get-cmpxchg-item#get-compare-exchange-item-that-has-a-number-value-and-metadata)  
+    * [Get compare-exchange item that has a custom object value](../compare-exchange/get-cmpxchg-item#get-compare-exchange-item-that-has-a-custom-object-value)
+  * [Syntax](../compare-exchange/get-cmpxchg-item#syntax)
+
+</Admonition>
+
+---
+
+## Get item via a Cluster-Wide session
+
+* You can retrieve compare-exchange items using a [cluster-wide session](../client-api/session/cluster-transaction/overview#open-a-cluster-transaction).  
+  The session must be opened in cluster-wide mode.
+  
+* Use the `GetCompareExchangeValue` advanced session method to get a compare-exchange item by its _key_.  
+  If the specified key does not exist, the method returns `null`. No exception is thrown.
+
+* Examples:
+
+    #### Get compare-exchange item
+    
+    <Tabs groupId='languageSyntax'>
+    <TabItem value="Sync" label="Sync">
+    ```csharp
+    // First, let's create a compare-exchange item for the example,
+    // e.g. store a user's email as the key and the user document id as the value.
+    using (var session = store.OpenSession(
+        new SessionOptions {TransactionMode = TransactionMode.ClusterWide}))
+    {     
+         CompareExchangeValue<string> item = 
+             session.Advanced.ClusterTransaction.CreateCompareExchangeValue(
+                 key: "user1-name@example.com",
+                 value: "users/1" 
+         );
+         
+         session.SaveChanges();
+    
+        // Get the compare-exchange item:
+        // ==============================
+        
+        item = session.Advanced.ClusterTransaction
+            .GetCompareExchangeValue<string>("user1-name@example.com");
+        
+        if (item != null) 
+        {
+            // Access the value of the retrieved item
+            var userDocumentId = item.Value; // "users/1"
+        
+            // Access the version number of the retrieved item
+            var version = item.Index;
+        } 
+        else
+        {
+            Console.WriteLine("Compare-exchange item not found");
+        }
+    }
+    ```
+    </TabItem>
+    <TabItem value="Async" label="Async">
+    ```csharp
+    // First, let's create a compare-exchange item for the example,
+    // e.g. store a user's email as the key and the user document id as the value.
+    using (var asyncSession = store.OpenAsyncSession(
+        new SessionOptions {TransactionMode = TransactionMode.ClusterWide}))
+    {
+        CompareExchangeValue<string> item =
+            asyncSession.Advanced.ClusterTransaction.CreateCompareExchangeValue(
+                key: "user1-name@example.com",
+                value: "users/1"
+            );
+            
+        await asyncSession.SaveChangesAsync();
+        
+        // Get the compare-exchange item:
+        // ==============================
+        
+        item = await asyncSession.Advanced.ClusterTransaction
+            .GetCompareExchangeValueAsync<string>("user1-name@example.com");
+            
+        if (item != null)
+        {
+            // Access the value of the retrieved item
+            var userDocumentId = item.Value; // "users/1"
+            
+            // Access the version number of the retrieved item
+            var version = item.Index;
+        }
+        else
+        {
+            Console.WriteLine("Compare-exchange item not found");
+        }
+    }    
+    ```
+    </TabItem>
+    </Tabs>
+
+    #### Get compare-exchange item lazily
+    
+    <Tabs groupId='languageSyntax'>
+    <TabItem value="Sync" label="Sync">
+    ```csharp
+    // Create a compare-exchange item for the example:
+    using (var session = store.OpenSession(
+        new SessionOptions {TransactionMode = TransactionMode.ClusterWide}))
+    {     
+         CompareExchangeValue<string> itemToCreate = 
+             session.Advanced.ClusterTransaction.CreateCompareExchangeValue(
+                 key: "user1-name@example.com",
+                 value: "users/1" 
+         );
+         session.SaveChanges();
+         
+        // Get the compare-exchange item lazily:
+        // =====================================
+        
+        var lazyItem = session.Advanced.ClusterTransaction.Lazily
+            .GetCompareExchangeValue<string>("user1-name@example.com");
+        
+        // Access the item:    
+        var retrievedItem = lazyItem.Value;
+        
+        if (retrievedItem != null) {
+            // Access the value of the retrieved item
+            var userDocumentId = retrievedItem.Value; // "users/1"
+        
+            // Access the version number of the retrieved item
+            var version = retrievedItem.Index;
+        } 
+        else
+        {
+            Console.WriteLine("Compare-exchange item not found");
+        }  
+    }    
+    ```
+    </TabItem>
+    <TabItem value="Async" label="Async">
+    ```csharp
+    // Create a compare-exchange item for the example:
+    using (var asyncSession = store.OpenAsyncSession(
+        new SessionOptions {TransactionMode = TransactionMode.ClusterWide}))
+    {
+        CompareExchangeValue<string> item =
+            asyncSession.Advanced.ClusterTransaction.CreateCompareExchangeValue(
+                key: "user1-name@example.com",
+                value: "users/1"
+            );
+            
+        await asyncSession.SaveChangesAsync();
+         
+        // Get the compare-exchange item lazily:
+        // =====================================
+        
+        var lazyItem = asyncSession.Advanced.ClusterTransaction.Lazily
+            .GetCompareExchangeValueAsync<string>("user1-name@example.com");
+        
+        // Access the item:    
+        var retrievedItem = await lazyItem.Value;
+        
+        if (retrievedItem != null) {
+            // Access the value of the retrieved item
+            var userDocumentId = retrievedItem.Value; // "users/1"
+        
+            // Access the version number of the retrieved item
+            var version = retrievedItem.Index;
+        } 
+        else
+        {
+            Console.WriteLine("Compare-exchange item not found");
+        } 
+    }    
+    ```
+    </TabItem>
+    </Tabs>
+
+---
+
+## Get item via a Store operation
+
+* You can retrieve compare-exchange items using a [store operation](../client-api/operations/what-are-operations).  
+  Use the `GetCompareExchangeValueOperation` operation to get a compare-exchange item by its _key_.  
+
+* If the specified key does not exist, the operation returns `null`. No exception is thrown.
+
+* Examples:
+
+    #### Get compare-exchange item that has a number value and metadata
+    
+    <Tabs groupId='languageSyntax'>
+    <TabItem value="Sync" label="Sync">
+    ```csharp
+    // First, let's create a new compare-exchange item for the example,
+    // e.g. store the number of sales made by an employee as the value + some metadata info:        
+    var putCmpXchgOp = new PutCompareExchangeValueOperation<long>("employees/1-A", 12345, 0, 
+        new MetadataAsDictionary
+        {
+            { "Department", "Sales" },
+            { "Role", "Salesperson" }
+        });
+        
+    var putResult = store.Operations.Send(putCmpXchgOp);
+    
+    // Get the compare-exchange item:
+    // ==============================
+    
+    // Define the get compare-exchange operation, pass the unique item key
+    var getCmpXchgOp = new GetCompareExchangeValueOperation<long>("employees/1-A");
+    
+    // Execute the operation by passing it to Operations.Send
+    var item = store.Operations.Send(getCmpXchgOp);
+    
+    if (item != null)
+    {
+        // Access the value and metadata of the retrieved item
+        var numberOfSales = item.Value;            // 12345
+        var employeeRole = item.Metadata["Role"];  // "Salesperson"
+    
+        // Access the version number of the retrieved item
+        var version = item.Index;
+    } 
+    else
+    {
+        Console.WriteLine("Compare-exchange item not found");
+    }
+    ```
+    </TabItem>
+    <TabItem value="Async" label="Async">
+    ```csharp
+    // Create a new compare-exchange item for the example:
+    var putCmpXchgOp = new PutCompareExchangeValueOperation<long>("employees/1-A", 12345, 0,
+        new MetadataAsDictionary
+        {
+            { "Department", "Sales" },
+            { "Role", "Salesperson" }
+        });
+        
+    var putResult = await store.Operations.SendAsync(putCmpXchgOp);
+    
+    // Get the compare-exchange item:
+    // ==============================
+    
+    var getCmpXchgOp = new GetCompareExchangeValueOperation<long>("employees/1-A");
+    var item = await store.Operations.SendAsync(getCmpXchgOp);
+    
+    if (item != null)
+    {
+        // Access the value and metadata of the retrieved item
+        var numberOfSales = item.Value;
+        var employeeRole = item.Metadata["Role"];
+    
+        // Access the version number of the retrieved item
+        var version = item.Index;
+    } 
+    else
+    {
+        Console.WriteLine("Compare-exchange item not found");
+    }
+    ```
+    </TabItem>
+    </Tabs>
+
+    #### Get compare-exchange item that has a custom object value
+    
+    <Tabs groupId='languageSyntax'>
+    <TabItem value="Sync" label="Sync">
+    ```csharp
+    // Put a new compare-exchange item with an object as the value
+    var employee = new Employee
+    {
+        Role = "Salesperson",
+        Department = "Sales",
+        NumberOfSales = 12345
+    };
+    
+    var putCmpXchgOp = new PutCompareExchangeValueOperation("employees/1-A", employee, 0);
+    var putResult = store.Operations.Send(putCmpXchgOp);
+    
+    // Get the compare-exchange item:
+    // ==============================
+    
+    // Define the get compare-exchange operation, pass the unique item key
+    var getCmpXchgOp = new GetCompareExchangeValueOperation<Employee>("employees/1-A");
+    
+    // Execute the operation by passing it to Operations.Send
+    var item = store.Operations.Send(getCmpXchgOp);
+    
+    if (item != null)
+    {
+        // Access the value of the retrieved item
+        var employeeResult = item.Value;
+        var employeeType = employeeResult.GetType();      // typeof(Employee)
+        var employeeRole = employeeResult.Role;           // "Salesperson"
+        var employeeDep  = employeeResult.Department;     // "Sales"
+        var employeeSales = employeeResult.NumberOfSales; // 12345
+        
+        // Access the version number of the retrieved item
+        long version = item.Index;
+    }
+    else
+    {
+        Console.WriteLine("Compare-exchange item not found");
+    }
+    ```
+    </TabItem>
+    <TabItem value="Async" label="Async">
+    ```csharp
+    // Put a new compare-exchange item with an object as the value
+    var employee = new Employee
+    {
+        Role = "Salesperson",
+        Department = "Sales",
+        NumberOfSales = 12345
+    };
+    
+    var putCmpXchgOp = new PutCompareExchangeValueOperation("employees/1-A", employee, 0);
+    var putResult = store.Operations.Send(putCmpXchgOp);
+    
+    // Get the compare-exchange item:
+    // ==============================
+    
+    var getCmpXchgOp = new GetCompareExchangeValueOperation<Employee>("employees/1-A");
+    var item = await store.Operations.SendAsync(getCmpXchgOp);
+    
+    if (item != null)
+    {
+        // Access the value of the retrieved item
+        var employeeResult = item.Value;
+        var employeeType = employeeResult.GetType();      // typeof(Employee)
+        var employeeRole = employeeResult.Role;           // "Salesperson"
+        var employeeDep  = employeeResult.Department;     // "Sales"
+        var employeeSales = employeeResult.NumberOfSales; // 12345
+        
+        // Access the version number of the retrieved item
+        long version = item.Index;
+    }
+    else
+    {
+        Console.WriteLine("Compare-exchange item not found");
+    }
+    ```
+    </TabItem>
+    <TabItem value="Employee_class" label="Employee_class">
+    ```csharp
+    public class Employee
+    {
+        public string Id { get; set; } 
+        public string Department { get; set; } = "";
+        public string Role { get; set; } = "";
+        public int NumberOfSales { get; set; }
+    }
+    ```
+    </TabItem>
+    </Tabs>
+
+---
+
+## Syntax
+
+---
+
+### `GetCompareExchangeValueOperation`  
+Get compare-exchange item via a store operation: 
+
+<TabItem value="" label="">
+```csharp
+public GetCompareExchangeValueOperation(string key);
+```
+</TabItem>
+
+### `GetCompareExchangeValue`  
+Get compare-exchange item via cluster-wide session:
+
+<TabItem value="" label="">
+```csharp
+CompareExchangeValue<T> GetCompareExchangeValue<T>(string key);
+Task<CompareExchangeValue<T>> GetCompareExchangeValueAsync<T>(string key,
+    CancellationToken token = default);
+
+Lazy<CompareExchangeValue<T>> GetCompareExchangeValue<T>(string key);
+Lazy<Task<CompareExchangeValue<T>>> GetCompareExchangeValueAsync<T>(string key,
+    CancellationToken token = default);
+```
+</TabItem>
+
+| Input parameter | Type     | Description                                                     |
+|-----------------|----------|-----------------------------------------------------------------|
+| **key**         | `string` | The unique identifier of the compare-exchange item to retrieve. |
+
+| The returned object:      | Description                                                    |
+|---------------------------|----------------------------------------------------------------|
+| `CompareExchangeValue<T>` | The compare-exchange item is returned.<br/>Returns `null` if key doesn't exist. |
+
+<TabItem value="" label="">
+```csharp
+public class CompareExchangeValue<T>
+{
+  // The unique identifier of the compare-exchange item.    
+  public string Key { get; }
+  
+  // The existing `value` of the returned compare-exchange item. 
+  public T Value { get; set; }
+  
+  // The compare-exchange item's version.
+  public long Index { get; internal set; }
+  
+  // The existing `metadata` of the returned compare-exchange item.
+  public IMetadataDictionary Metadata;
+}
+```
+</TabItem>

@@ -1,0 +1,394 @@
+﻿import Admonition from '@theme/Admonition';
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import CodeBlock from '@theme/CodeBlock';
+
+<Admonition type="note" title="">
+
+* A new compare-exchange item can be created in the following ways:
+  * Via a cluster-wide session  
+  * Via a store operation  
+  * Via the Studio  
+ 
+* To modify an existing compare-exchange item, see: [Update compare-exchange items](../todo..).
+
+* In this article:  
+  * [Create items via a **Cluster-Wide session**](../compare-exchange/create-cmpxchg-items#create-items-via-a-cluster-wide-session)
+    * [Example I - Create compare-exchange item - with a string value](../compare-exchange/create-cmpxchg-items#example-i---create-compare-exchange-item---with-a-string-value)  
+    * [Example II - Create compare-exchange item - with a custom object value](../compare-exchange/create-cmpxchg-items#example-ii---create-compare-exchange-item---with-a-custom-object-value)  
+  * [Create items via a **Store operation**](../compare-exchange/create-cmpxchg-items#create-items-via-a-store-operation)  
+    * [Example III - Create compare-exchange item - with a string value](../compare-exchange/create-cmpxchg-items#example-iii---create-a-compare-exchange-item---with-a-string-value)  
+    * [Example IV - Create compare-exchange item - with a custom object value](../compare-exchange/create-cmpxchg-items#example-iv---create-a-compare-exchange-item---with-a-custom-object-value)  
+    * [Example V - Create compare-exchange item - with metadata](../compare-exchange/create-cmpxchg-items#example-v---create-a-compare-exchange-item---with-metadata)
+  * [Create items via the **Studio**](../compare-exchange/create-cmpxchg-items#create-items-via-the-studio)
+  * [Syntax](../compare-exchange/create-cmpxchg-items#syntax)     
+
+</Admonition>
+
+---
+
+## Create items via a Cluster-Wide session
+
+* Compare-exchange items can be created using a cluster-wide session.  
+  Learn more about cluster-wide sessions in [Cluster transactions - overview](../client-api/session/cluster-transaction/overview).  
+
+* Use `CreateCompareExchangeValue()` to add a new compare-exchange item to the session.  
+  It will be created as part of the `SaveChanges()` transaction.   
+
+* An `InvalidOperationException` is thrown if the session is not opened in cluster-wide mode.  
+  If the key already exists, _SaveChanges()_ will throw a `ClusterTransactionConcurrencyException`.
+
+* To create a compare-exchange item with metadata, use a [store operation](../compare-exchange/create-cmpxchg-items#create-items-via-a-store-operation) instead.
+
+--- 
+
+#### Example I - Create compare-exchange item - with a string value
+
+<Tabs groupId='languageSyntax'>
+<TabItem value="Sync" label="Sync">
+```csharp
+// The session must be opened in cluster-wide mode
+using (var session = store.OpenSession(
+    new SessionOptions {TransactionMode = TransactionMode.ClusterWide}))
+{
+     // Call 'CreateCompareExchangeValue' to create a new compare-exchange item.
+     CompareExchangeValue<string> item = 
+         session.Advanced.ClusterTransaction.CreateCompareExchangeValue(
+             key: "user2-name@example.com",
+             value: "users/2" 
+     );    
+
+     // Commit the cluster-wide transaction.
+     // This will create the compare-exchange item,
+     // or throw a 'ClusterTransactionConcurrencyException' if the key already exists.
+     session.SaveChanges();
+}
+```
+</TabItem>
+<TabItem value="Async" label="Async">
+```csharp
+using (var asyncSession = store.OpenAsyncSession(
+    new SessionOptions {TransactionMode = TransactionMode.ClusterWide}))
+{
+     CompareExchangeValue<string> item = 
+         asyncSession.Advanced.ClusterTransaction.CreateCompareExchangeValue(
+             key: "user2-name@example.com",
+             value: "users/2" 
+    );
+    
+     await asyncSession.SaveChangesAsync();
+}
+```
+</TabItem>
+</Tabs>
+
+#### Example II - Create compare-exchange item - with a custom object value
+
+<Tabs groupId='languageSyntax'>
+<TabItem value="Sync" label="Sync">
+```csharp
+// Define the object to be stored as the value
+var user2 = new UserInfo()
+{
+    UserDocumentId = "users/2",
+    AdditionalInfo = "someInfo.."
+};
+
+// The session must be opened in cluster-wide mode
+using (var session = store.OpenSession(
+    new SessionOptions {TransactionMode = TransactionMode.ClusterWide}))
+{
+     // Call 'CreateCompareExchangeValue' to create a new compare-exchange item.
+     CompareExchangeValue<UserInfo> item = 
+         session.Advanced.ClusterTransaction.CreateCompareExchangeValue(
+             key: "user2-name@example.com",
+             value: user2 // Pass the object instance
+     );    
+
+     // Commit the cluster-wide transaction.
+     // This will create the compare-exchange item,
+     // or throw a 'ClusterTransactionConcurrencyException' if the key already exists.
+     session.SaveChanges();
+}
+```
+</TabItem>
+<TabItem value="Async" label="Async">
+```csharp
+var user2 = new UserInfo()
+{
+    UserDocumentId = "users/2",
+    AdditionalInfo = "someInfo.."
+};
+
+using (var asyncSession = store.OpenAsyncSession(
+    new SessionOptions {TransactionMode = TransactionMode.ClusterWide}))
+{
+     CompareExchangeValue<UserInfo> item = 
+         asyncSession.Advanced.ClusterTransaction.CreateCompareExchangeValue(
+             key: "user2-name@example.com",
+             value: user2 // Pass the object instance
+    );
+    
+     await asyncSession.SaveChangesAsync();
+}
+```
+</TabItem>
+</Tabs>
+
+---
+
+## Create items via a Store operation
+
+* Compare-exchange items can be created using a [store operation](../client-api/operations/what-are-operations).  
+  Use `PutCompareExchangeValueOperation` to create a new compare-exchange item or modify an existing one.  
+
+* Creating a new compare-exchange item will succeed only if:
+  * The passed index is 0, and
+  * The specified key does not already exist in the database.
+
+* The operation will return a failed result (no exception is thrown) in the following cases:
+  * A new key is provided, but the index is not 0.
+  * The key already exists, even if the passed index is 0.
+
+---
+
+#### Example III - Create a compare-exchange item - with a string value
+
+<Tabs groupId='languageSyntax'>
+<TabItem value="Sync" label="Sync">
+```csharp
+// Create a new compare-exchange item:
+// ===================================
+
+// Define the put compare-exchange operation. Pass:
+// * KEY: a new unique string identifier (e.g. a user's email)
+// * VALUE: an associated value (e.g. the user's document ID)
+// * INDEX: pass '0' to indicate that this is a new compare-exchange item
+var putCmpXchgOp = new PutCompareExchangeValueOperation<string>(
+    "user1-name@example.com", "users/1", 0);
+
+// Execute the operation by passing it to Operations.Send
+CompareExchangeResult<string> compareExchangeResult = store.Operations.Send(putCmpXchgOp);
+
+// Check results
+bool successful = compareExchangeResult.Successful; // Has operation succeeded
+long indexForItem = compareExchangeResult.Index;    // The version number assigned to the new item
+
+// If 'successful' is true, then a new compare-exchange item has been created
+// with the unique email key and the associated value.
+```
+</TabItem>
+<TabItem value="Async" label="Async">
+```csharp
+var putCmpXchgOp = new PutCompareExchangeValueOperation<string>(
+    "user1-name@example.com", "users/1", 0);
+    
+CompareExchangeResult<string> compareExchangeResult = await store.Operations.SendAsync(putCmpXchgOp);
+
+bool successful = compareExchangeResult.Successful;
+long indexForItem = compareExchangeResult.Index; 
+```
+</TabItem>
+</Tabs>
+
+#### Example IV - Create a compare-exchange item - with a custom object value
+
+<Tabs groupId='languageSyntax'>
+<TabItem value="Sync" label="Sync">
+```csharp
+// Create a new compare-exchange item:
+// ===================================
+
+// Define the object to be stored as the value
+var user1 = new UserInfo()
+{
+    UserDocumentId = "users/1",
+    AdditionalInfo = "someInfo.."
+};
+
+// Define the put compare-exchange operation.
+// Pass the key, the object instance, and '0' to indicate that this is a new item.
+// Specify the object type in the generic <T> parameter.
+var putCmpXchgOp = new PutCompareExchangeValueOperation<UserInfo>(
+    "user1-name@example.com", user1, 0);
+
+// Execute the operation by passing it to Operations.Send
+CompareExchangeResult<UserInfo> compareExchangeResult = store.Operations.Send(putCmpXchgOp);
+
+// Check results
+bool successful = compareExchangeResult.Successful; // Has operation succeeded
+long indexForItem = compareExchangeResult.Index;    // The version number assigned to the new item
+
+// If 'successful' is true, then a new compare-exchange item has been created
+// with the unique email key and the associated value.
+```
+</TabItem>
+<TabItem value="Async" label="Async">
+```csharp
+var user1 = new UserInfo()
+{
+    UserDocumentId = "users/1",
+    AdditionalInfo = "someInfo.."
+};
+
+var putCmpXchgOp = new PutCompareExchangeValueOperation<UserInfo>(
+    "user1-name@example.com", user1, 0);
+    
+CompareExchangeResult<UserInfo> compareExchangeResult = store.Operations.Send(putCmpXchgOp);
+
+bool successful = compareExchangeResult.Successful;
+long indexForItem = compareExchangeResult.Index;
+```
+</TabItem>
+</Tabs>
+
+#### Example V - Create a compare-exchange item - with metadata
+
+* You can optionally store metadata in a compare-exchange item to associate any information you want with the item.  
+  The metadata must be a valid JSON object.
+
+* One common use case is setting an expiration time for the compare-exchange item via the metadata.    
+  Learn more about that in [Set expiration for compare-exchange items](../todo..).
+
+<Tabs groupId='languageSyntax'>
+<TabItem value="Sync" label="Sync">
+```csharp
+// Create a new compare-exchange item with metadata:
+// =================================================
+
+// Define the metadata - must be a valid JSON object
+var metadata = new MetadataAsDictionary
+{
+     { "email-type", "work email" }
+};
+
+// Define the put compare-exchange operation.
+// Pass a 4'th parameter with the metadata object.
+var putCmpXchgOp = new PutCompareExchangeValueOperation<string>(
+    "user1-name@example.com", "users/1", 0, metadata);
+
+// Execute the operation by passing it to Operations.Send
+CompareExchangeResult<string> compareExchangeResult = store.Operations.Send(putCmpXchgOp);
+
+// Check results
+bool successful = compareExchangeResult.Successful; // Has operation succeeded
+long indexForItem = compareExchangeResult.Index;    // The version number assigned to the new item
+
+// If successful is true then a new compare-exchange item has been created
+// with the unique key, value, and metadata.
+```
+</TabItem>
+<TabItem value="Async" label="Async">
+```csharp
+var metadata = new MetadataAsDictionary
+{
+     { "email-type", "work email" }
+};
+
+var putCmpXchgOp = new PutCompareExchangeValueOperation<string>(
+    "user1-name@example.com", "users/1", 0, metadata);
+    
+CompareExchangeResult<string> compareExchangeResult = await store.Operations.SendAsync(putCmpXchgOp);
+
+bool successful = compareExchangeResult.Successful;
+long indexForItem = compareExchangeResult.Index; 
+```
+</TabItem>
+</Tabs>
+
+---
+
+## Create items via the Studio
+
+To create compare-exchange items via the Studio, go to **Documents > Compare Exchange**.
+
+![The compare-exchange view](../assets/create-new-cmpxchg-1.png)
+
+![The compare-exchange view](../assets/create-new-cmpxchg-2.png)
+
+1. **Key**  
+   Enter a unique identifier for the compare-exchange item (up to 512 bytes).  
+   This key must be unique across the entire database.
+2. **Value**  
+    Enter the value to associate with the key.  
+    Can be a number, string, array, or any valid JSON object.
+3. **Metadata** (optional)  
+    Add any additional data you want to store with the item.  
+    Must be a valid JSON object.  
+    Can be used to [set expiration time](../todo..) for the compare-exchange item.  
+4. **Save**  
+   Click to create the compare-exchange item.  
+   If the key already exists, an error message will be shown.
+
+---
+
+## Syntax
+
+---
+
+### `PutCompareExchangeValueOperation`  
+Create compare-exchange item via a store operation: 
+
+<TabItem value="" label="">
+```csharp
+public PutCompareExchangeValueOperation(
+    string key, T value, long index, IMetadataDictionary metadata = null)
+```
+</TabItem>
+
+| Parameter    | Type                  | Description |
+|--------------|-----------------------|-------------|
+| **key**      | `string`              | <ul><li>A unique identifier in the database scope.</li><li>Can be up to 512 bytes.</li></ul> |
+| **value**    | `T`                   | <ul><li>A value to be saved for the specified _key_.</li><li>Can be any object (number, string, array, or any valid JSON object).</li></ul> |
+| **index**    | `long`                | <ul><li>Pass `0` to create a new key.</li><li>When updating an existing key, pass the current number for concurrency control.</li></ul> |
+| **metadata** | `IMetadataDictionary` | <ul><li>Optional metadata to be saved for the specified _key_.</li><li>Must be a valid JSON object.</li></ul> |
+
+
+**Returned object**:
+
+<TabItem value="" label="">
+```csharp
+public class CompareExchangeResult<T>
+{
+    public bool Successful;
+    public T Value;
+    public long Index;
+}
+```
+</TabItem>
+
+| Return Value  | Type   | Description |
+|---------------|--------|-------------|
+| **Successful**| `bool` | <ul><li>`true` if the put operation has completed successfully.</li><li>`false` if the put operation has failed.</li></ul> |
+| **Value**     | `T`    | <ul><li>Upon success - the value of the compare-exchange item that was saved.</li><li>Upon failure - the existing value on the server.</li></ul> |
+| **Index**     | `long` | <ul><li>The compare-exchange item's version.</li><li>This number increases with each successful modification of the `value` or `metadata`.</li><li>Upon success - the updated version of the compare-exchange item that was saved.</li><li>Upon failure - the existing version number on the server.</li></ul> |
+
+---
+
+### `CreateCompareExchangeValue`  
+Create compare-exchange item via cluster-wide session:
+
+<TabItem value="" label="">
+```csharp
+session.Advanced.ClusterTransaction.CreateCompareExchangeValue<T>(key, value);
+
+// Note: There is currently no overload to create items with metadata via a session.
+```
+</TabItem>
+
+| Parameter  | Type     | Description                                                        |
+|------------|----------|--------------------------------------------------------------------|
+| **key**    | `string` | The compare-exchange item key. This string can be up to 512 bytes. |
+| **value**  | `T`      | The associated value to store for the key.<br/>Can be a number, string, array, or any valid JSON object. |
+
+| `CreateCompareExchangeValue` returns: | Description                                                                                      |
+|---------------------------|---------------------------------------------------------------------------------------------------------------------|
+| `CompareExchangeValue<T>` | The compare-exchange item that is added to the transaction.<br/>It will be created when `SaveChanges()` is called.  |
+
+The returned `CompareExchangeValue` contains:
+
+| Property   | Type     | Description                                                        |
+|------------|----------|--------------------------------------------------------------------|
+| **key**    | `string` | The compare-exchange item key. This string can be up to 512 bytes. |
+| **value**  | `T`      | The value associated with the key.                                 |
+| **index**  | `long`   | The index used for concurrency control.<br/>Will be `0` when calling `CreateCompareExchangeValue`. |   

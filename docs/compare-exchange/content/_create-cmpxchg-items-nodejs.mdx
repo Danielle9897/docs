@@ -1,0 +1,233 @@
+﻿import Admonition from '@theme/Admonition';
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import CodeBlock from '@theme/CodeBlock';
+
+<Admonition type="note" title="">
+
+* A new compare-exchange item can be created in the following ways:  
+  * Via a cluster-wide session
+  * Via a store operation  
+  * Via the Studio  
+ 
+* To modify an existing compare-exchange item, see: [Update compare-exchange items](../todo..).
+
+* In this article:  
+  * [Create items via a **Cluster-Wide session**](../compare-exchange/create-cmpxchg-items#create-items-via-a-cluster-wide-session)
+  * [Create items via a **Store operation**](../compare-exchange/create-cmpxchg-items#create-items-via-a-store-operation)  
+    * [Example I - Create a new compare-exchange item](../compare-exchange/create-cmpxchg-items#example-i---create-a-new-compare-exchange-item)  
+    * [Example II - Create a new compare-exchange item with metadata](../compare-exchange/create-cmpxchg-items#example-ii---create-a-new-compare-exchange-item-with-metadata)
+  * [Create items via the **Studio**](../compare-exchange/create-cmpxchg-items#create-items-via-the-studio)
+  * [Syntax](../compare-exchange/create-cmpxchg-items#syntax)     
+
+</Admonition>
+
+---
+
+## Create items via a Cluster-Wide session
+
+* Compare-exchange items can be created using a cluster-wide session.  
+  Learn more about cluster-wide sessions in [Cluster transactions - overview](../client-api/session/cluster-transaction/overview).  
+
+* Use `createCompareExchangeValue()` to add a new compare-exchange item to the session.  
+  It will be created as part of the `saveChanges()` transaction.   
+
+* An `InvalidOperationException` is thrown if the session is not opened in cluster-wide mode.  
+  If the key already exists, _saveChanges()_ will throw a `ClusterTransactionConcurrencyException`.
+
+* To create a compare-exchange item with metadata, use a [store operation](../compare-exchange/create-cmpxchg-items#create-items-via-a-store-operation) instead.
+
+#### Example
+
+<TabItem value="" label="">
+```js
+// The session must be opened in cluster-wide mode
+const session = documentStore.openSession({
+    transactionMode: "ClusterWide"
+});
+
+// Call 'createCompareExchangeValue' to create a new compare-exchange item.
+session.advanced.clusterTransaction.createCompareExchangeValue(
+    "user2-name@example.com", "users/2"  // key, value
+);
+
+// Commit the cluster-wide transaction.
+// This will create the compare-exchange item,
+// or throw a 'ClusterTransactionConcurrencyException' if the key already exists.
+await session.saveChanges();
+```
+</TabItem>
+
+---
+
+## Create items via a Store operation
+
+* Compare-exchange items can be created using a [store operation](../client-api/operations/what-are-operations).  
+  Use `PutCompareExchangeValueOperation` to create a new compare-exchange item or modify an existing one.  
+
+* Creating a new compare-exchange item will succeed only if:
+  * The passed index is 0, and
+  * The specified key does not already exist in the database.
+
+* The operation will return a failed result (no exception is thrown) in the following cases:
+  * A new key is provided, but the index is not 0.
+  * The key already exists, even if the passed index is 0.
+
+---
+
+#### Example I - Create a new compare-exchange item
+
+<TabItem value="" label="">
+```js
+// Create a new compare-exchange item:
+// ===================================
+
+// Define the put compare-exchange operation. Pass:
+// * KEY: a new unique identifier (e.g. a user's email)
+// * VALUE: an associated value (e.g. the user's document ID)
+// * INDEX: pass '0' to indicate that this is a new key
+const putCmpXchgOp = new PutCompareExchangeValueOperation("user1-name@example.com", "users/1", 0);
+
+// Execute the operation by passing it to operations.send
+const result = await documentStore.operations.send(putCmpXchgOp);
+
+// Check results
+const successful = result.successful; // Has operation succeeded
+const indexForItem = result.index;    // The version number assigned to the new item
+
+// If successful is true then a new compare-exchange item has been created
+// with the unique email key and the associated value.
+```
+</TabItem>
+
+#### Example II - Create a new compare-exchange item with metadata
+
+* You can optionally store metadata in a compare-exchange item to associate any information you want with the item.  
+  The metadata must be a valid JSON object.
+
+* One common use case is setting an expiration time for the compare-exchange item via the metadata.    
+  Learn more about that in [Set expiration for compare-exchange items](../todo..).
+
+<TabItem value="" label="">
+```js
+// Create a new compare-exchange item with metadata:
+// =================================================
+
+// Define the put compare-exchange operation.
+// Pass a 4'th parameter with the metadata object.
+const putCmpXchgOp = new PutCompareExchangeValueOperation("user1-name@example.com", "users/1", 0,
+    { 
+        "email-type": "work email"
+    });
+
+// Execute the operation by passing it to operations.send
+const result = await documentStore.operations.send(putCmpXchgOp);
+
+// Check results
+const successful = result.successful; // Has operation succeeded
+const indexForItem = result.index;    // The version number assigned to the new item
+
+// If successful is true then a new compare-exchange item has been created
+// with the unique phone number key, value, and metadata.
+```
+</TabItem>
+
+---
+
+## Create items via the Studio
+
+To create compare-exchange items via the Studio, go to **Documents > Compare Exchange**.
+
+![The compare-exchange view](../assets/create-new-cmpxchg-1.png)
+
+![The compare-exchange view](../assets/create-new-cmpxchg-2.png)
+
+1. **Key**  
+   Enter a unique identifier for the compare-exchange item (up to 512 bytes).  
+   This key must be unique across the entire database.
+2. **Value**  
+    Enter the value to associate with the key.  
+    Can be a number, string, array, or any valid JSON object.
+3. **Metadata** (optional)  
+    Add any additional data you want to store with the item.  
+    Must be a valid JSON object.  
+    Can be used to [set expiration time](../todo..) for the compare-exchange item.  
+4. **Save**  
+   Click to create the compare-exchange item.  
+   If the key already exists, an error message will be shown.
+
+---
+
+## Syntax
+
+---
+
+### `PutCompareExchangeValueOperation`  
+Create compare-exchange item via a store operation: 
+
+<TabItem value="" label="">
+```js
+// Available overloads:
+// ====================
+const putCmpXchgOp = new PutCompareExchangeValueOperation(key, value, index);
+const putCmpXchgOp = new PutCompareExchangeValueOperation(key, value, index, metadata);
+```
+</TabItem>
+
+| Parameter    | Type     | Description |
+|--------------|----------|-------------|
+| **key**      | `string` | <ul><li>A unique identifier in the database scope.</li><li>Can be up to 512 bytes.</li></ul> |
+| **value**    | `object` | <ul><li>A value to be saved for the specified _key_.</li><li>Can be any object (number, string, array, or any valid JSON object).</li></ul> |
+| **index**    | `number` | <ul><li>Pass `0` to create a new key.</li><li>When updating an existing key, pass the current number for concurrency control.</li></ul> |
+| **metadata** | `object` | <ul><li>Optional metadata to be saved for the specified _key_.</li><li>Must be a valid JSON object.</li></ul> |
+
+
+**Returned object**:
+
+<TabItem value="" label="">
+```js
+// Return value of store.operations.send(putCmpXchgOp)
+// ===================================================
+class CompareExchangeResult {
+    successful;
+    value;
+    index;
+}
+```
+</TabItem>
+
+| Return Value   | Type      | Description |
+|----------------|-----------|-------------|
+| **successful** | `boolean` | <ul><li>`true` if the put operation has completed successfully.</li><li>`false` if the put operation has failed.</li></ul> |
+| **value**      | `object`  | <ul><li>Upon success - the value of the compare-exchange item that was saved.</li><li>Upon failure - the existing value on the server.</li></ul> |
+| **index**      | `number`  | <ul><li>The compare-exchange item's version.</li><li>This number increases with each successful modification of the `value` or `metadata`.</li><li>Upon success - the updated version of the compare-exchange item that was saved.</li><li>Upon failure - the existing version number on the server.</li></ul> |
+
+---
+
+### `createCompareExchangeValue`  
+Create compare-exchange item via cluster-wide session:
+
+<TabItem value="" label="">
+```js
+session.advanced.clusterTransaction.createCompareExchangeValue(key, item);
+
+// Note: There is currently no overload to create items with metadata via a session.
+```
+</TabItem>
+
+| Parameter  | Type     | Description                                                        |
+|------------|----------|--------------------------------------------------------------------|
+| **key**    | `string` | The compare-exchange item key. This string can be up to 512 bytes. |
+| **value**  | `object` | The associated value to store for the key.<br/>Can be a number, string, array, or any valid JSON object. |
+
+| `createCompareExchangeValue` returns: | Description                                                                            |
+|---------------------------|----------------------------------------------------------------------------------------------------|
+| `object` | The compare-exchange item that is added to the transaction.<br/>It will be created when `saveChanges()` is called.  |
+
+The returned object contains:
+
+| Property   | Type     | Description                                                        |
+|------------|----------|--------------------------------------------------------------------|
+| **key**    | `string` | The compare-exchange item key. This string can be up to 512 bytes. |
+| **value**  | `object` | The value associated with the key.                                 |
+| **index**  | `number` | The index used for concurrency control.<br/>Will be `0` when calling `createCompareExchangeValue`. |   

@@ -1,0 +1,39 @@
+﻿---
+title: "Update compare-exchange items"
+hide_table_of_contents: true
+sidebar_label: "Update compare-exchange items"
+sidebar_position: 5
+---
+
+import LanguageSwitcher from "@site/src/components/LanguageSwitcher";
+import LanguageContent from "@site/src/components/LanguageContent";
+
+import UpdateCmpXchgItemsCsharp from './content/_update-cmpxchg-items-csharp.mdx';
+import UpdateCmpXchgItemsJava from './content/_update-cmpxchg-items-java.mdx';
+import UpdateCmpXchgItemsNodejs from './content/_update-cmpxchg-items-nodejs.mdx';
+
+export const supportedLanguages = ["csharp", "java", "nodejs"];
+
+<LanguageSwitcher supportedLanguages={supportedLanguages} />
+
+<LanguageContent language="csharp">
+   <UpdateCmpXchgItemsCsharp />
+</LanguageContent>
+
+<LanguageContent language="java">
+   <UpdateCmpXchgItemsJava />
+</LanguageContent>
+
+<LanguageContent language="nodejs">
+   <UpdateCmpXchgItemsNodejs />
+</LanguageContent>
+
+<!---
+### Compare Exchange
+- [Overview](../../../client-api/operations/compare-exchange/overview)
+- [Get compare-exchange value](../../../client-api/operations/compare-exchange/get-compare-exchange-value)
+- [Get compare-exchange values](../../../client-api/operations/compare-exchange/get-compare-exchange-values)
+- [Delete compare-exchange](../../../client-api/operations/compare-exchange/delete-compare-exchange-value)
+
+
+-->

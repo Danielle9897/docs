@@ -1,0 +1,78 @@
+﻿---
+title: "Compare-exchange configuration"
+hide_table_of_contents: true
+sidebar_label: "Configuration"
+sidebar_position: 12
+---
+
+import Admonition from '@theme/Admonition';
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import CodeBlock from '@theme/CodeBlock';
+import LanguageSwitcher from "@site/src/components/LanguageSwitcher";
+import LanguageContent from "@site/src/components/LanguageContent";
+
+<Admonition type="note" title="">
+
+* For an overview of what configuration options are and how they can be applied,  
+  see the [Configuration Overview](../server/configuration/configuration-options) article.    
+
+* The following configuration options are available for compare-exchange:  
+    * [Cluster.CompareExchangeExpiredDeleteFrequencyInSec](../compare-exchange/configuration#clustercompareexchangeexpireddeletefrequencyinsec)  
+    * [Cluster.CompareExchangeTombstonesCleanupIntervalInMin](../compare-exchange/configuration#clustercompareexchangetombstonescleanupintervalinmin)  
+    * [Cluster.MaxClusterTransactionCompareExchangeTombstoneCheckIntervalInMin](../compare-exchange/configuration#clustermaxclustertransactioncompareexchangetombstonecheckintervalinmin)
+    * [Cluster.DisableAtomicDocumentWrites](../todo..)  
+
+</Admonition>
+
+---
+
+<Admonition type="note" title="">    
+
+## Cluster.CompareExchangeExpiredDeleteFrequencyInSec
+
+Time (in seconds) between cleanup of expired compare-exchange items.
+
+- **Type**: `int`
+- **Default**: `60`
+- **Scope**: Server-wide only
+
+</Admonition>
+
+<Admonition type="note" title="">    
+
+## Cluster.CompareExchangeTombstonesCleanupIntervalInMin
+
+Time (in minutes) between cleanup of compare-exchange tombstones.
+
+- **Type**: `int`
+- **Default**: `10`
+- **Scope**: Server-wide only
+
+</Admonition>
+
+<Admonition type="note" title="">    
+
+## Cluster.MaxClusterTransactionCompareExchangeTombstoneCheckIntervalInMin
+
+The maximum interval (in minutes) between checks for compare-exchange tombstones that are performed by the cluster-wide transaction mechanism.
+
+- **Type**: `int`
+- **Default**: `5`
+- **Scope**: Server-wide only
+
+</Admonition>
+
+<Admonition type="note" title="">  
+
+## Cluster.DisableAtomicDocumentWrites
+
+EXPERT ONLY:  
+Disable automatic atomic writes with cluster write transactions.  
+If set to _true_, will only consider explicitly added compare exchange values to validate cluster wide transactions.
+
+- **Type**: `bool`
+- **Default**: `false`
+- **Scope**: Server-wide or per database
+
+</Admonition>
