@@ -13,19 +13,20 @@ import Panel from '@site/src/components/Panel';
   manually before the task can start.
 
 * In this article:
-  * [Automatic Setup](#automatic-setup)
-  * [Manual Setup](#manual-setup)
-  * [Specifying Custom Slot and Publication Names](#specifying-custom-slot-and-publication-names)
-  * [Slot and Publication Naming (Auto-generated)](#slot-and-publication-naming-auto-generated)
-  * [Verifying Setup](#verifying-setup)
+  * [Automatic setup](#automatic-setup)
+  * [Manual setup](#manual-setup)
+  * [Specifying custom slot and publication names](#specifying-custom-slot-and-publication-names)
+  * [Slot and publication naming (auto-generated)](#slot-and-publication-naming-auto-generated)
+  * [Verifying setup](#verifying-setup)
+  * [One active consumer per slot](#one-active-consumer-per-slot)
 
 </Admonition>
 
-<Panel heading="Automatic Setup">
+<Panel heading="Automatic setup">
 
 If the PostgreSQL user configured in the CDC Sink connection string has the required
 PostgreSQL permissions (see
-[Permissions and Roles](../permissions-and-roles.mdx)),
+[Permissions and Roles](../../../../../../server/ongoing-tasks/cdc-sink/source-database-setup/postgres/permissions-and-roles.mdx)),
 CDC Sink will:
 
 1. Generate the replication slot and publication names (derived from the task id) and store them with the task
@@ -38,7 +39,7 @@ No manual database administration is needed in this case.
 
 </Panel>
 
-<Panel heading="Manual Setup">
+<Panel heading="Manual setup">
 
 If the PostgreSQL user configured in the CDC Sink connection string does not have
 permission to create replication slots or publications, a database administrator must
@@ -48,7 +49,7 @@ create them before the task is started.
 
 The simplest approach is to specify the names explicitly in `CdcSinkPostgresSettings`
 so both you and the database administrator know what names to use.
-See [Specifying Custom Slot and Publication Names](#specifying-custom-slot-and-publication-names).
+See [Specifying custom slot and publication names](#specifying-custom-slot-and-publication-names).
 
 If using auto-generated names (no `Postgres` settings), CDC Sink generates names
 using the `rvn_cdc_s_` and `rvn_cdc_p_` prefixes followed by the task id.
@@ -63,7 +64,7 @@ and reading the error message, which includes the expected names.
 Create a publication that includes all the tables CDC Sink will replicate:
 
 <Tabs>
-<TabItem value="sql" label="sql">
+<TabItem value="sql" label="SQL">
 
 ```sql
 CREATE PUBLICATION rvn_cdc_p_<taskId>
@@ -79,7 +80,7 @@ configurations.
 **Step 3: Create the replication slot**
 
 <Tabs>
-<TabItem value="sql" label="sql">
+<TabItem value="sql" label="SQL">
 
 ```sql
 SELECT pg_create_logical_replication_slot(
@@ -104,7 +105,7 @@ will continue to be used regardless of subsequent configuration changes.
 
 </Panel>
 
-<Panel heading="Specifying Custom Slot and Publication Names">
+<Panel heading="Specifying custom slot and publication names">
 
 You can explicitly specify the replication slot and publication names by setting
 `CdcSinkPostgresSettings` on the task configuration:
@@ -142,7 +143,7 @@ lifetime of the task. If you need different names, delete the task and create a 
 
 </Panel>
 
-<Panel heading="Slot and Publication Naming (Auto-generated)">
+<Panel heading="Slot and publication naming (auto-generated)">
 
 When `CdcSinkPostgresSettings` is not set (or `SlotName`/`PublicationName` are null),
 CDC Sink generates unique names at task creation time using the task id:
@@ -177,12 +178,12 @@ etc.) do not change the slot or publication names - the original names are alway
 
 </Panel>
 
-<Panel heading="Verifying Setup">
+<Panel heading="Verifying setup">
 
 To verify the slot and publication were created:
 
 <Tabs>
-<TabItem value="sql" label="sql">
+<TabItem value="sql" label="SQL">
 
 ```sql
 -- View CDC Sink replication slots
@@ -201,5 +202,46 @@ ORDER BY p.pubname, c.relname;
 
 </TabItem>
 </Tabs>
+
+</Panel>
+
+<Panel heading="One active consumer per slot">
+
+A PostgreSQL logical replication slot can be consumed by **only one connection at a time**.
+This matters when the same CDC Sink task configuration exists in more than one database -
+for example after **export/import** or **backup/restore**, which copy the task configuration
+verbatim, including the (immutable) `SlotName` and `PublicationName`.
+
+Because both copies point at the **same slot**, only one enabled task can consume it. The
+other task cannot attach to the slot, drops into fallback (error-recovery) mode, and retries
+periodically. Until a retry wins the slot, changes made in the source database are reflected
+in the losing database only after a delay, and that task reports an error such as:
+
+<Tabs>
+<TabItem value="plain" label="plain">
+
+```plain
+Process is in error recovery (fallback mode). Last error: <timestamp>. Next retry in: 464s.
+```
+
+</TabItem>
+</Tabs>
+
+**Guidance:**
+
+* Keep the task **enabled in only one database at a time** when the configuration is shared.
+  * **Export/Import:** imported tasks are created **disabled** by default, so this is safe
+    until you explicitly enable them. Before enabling the imported task, either disable the
+    task on the origin database or give the copy its own slot (see below).
+  * **Backup/Restore:** a restored task keeps its original **enabled** state unless you set
+    the `DisableOngoingTasks` restore option. Restore with that option set, or disable the
+    task on one of the two databases, to avoid a slot conflict.
+* To run the task **against both databases simultaneously**, give each database its own
+  dedicated slot and publication: set a distinct `SlotName`/`PublicationName` in
+  `CdcSinkPostgresSettings` on the copy before enabling it (the names are immutable once the
+  task starts), or have a database administrator pre-create a second slot and publication.
+
+See [Export / Import a Task](../../../../../../server/ongoing-tasks/cdc-sink/manage-cdc-sink-tasks/export-import-task.mdx) and
+[Backup / Restore a Task](../../../../../../server/ongoing-tasks/cdc-sink/manage-cdc-sink-tasks/backup-restore-task.mdx).
 
 </Panel>

@@ -13,24 +13,25 @@ import Panel from '@site/src/components/Panel';
   or DELETE via `OnDelete.Patch`).
 
 * In this article:
-  * [When Patches Run](#when-patches-run)
-  * [Available Variables](#available-variables)
-  * [$row and $old: Names and Types](#row-and-old-names-and-types)
-  * [$row Column Types](#row-column-types)
-  * [Patch Scope: Root vs Embedded](#patch-scope-root-vs-embedded)
-  * [Scenario: Column Transformation](#scenario-column-transformation)
-  * [Scenario: Aggregation with Embedded Tables](#scenario-aggregation-with-embedded-tables)
-  * [Scenario: Delta Computations](#scenario-delta-computations)
-  * [Scenario: Computed Derived Fields](#scenario-computed-derived-fields)
-  * [Scenario: Document Metadata](#scenario-document-metadata)
-  * [Scenario: Loading Related Documents](#scenario-loading-related-documents)
-  * [Idempotency and Failover](#idempotency-and-failover)
-  * [Step Limit](#step-limit)
-  * [Capabilities and Limitations](#capabilities-and-limitations)
+  * [When patches run](#when-patches-run)
+  * [Available variables](#available-variables)
+  * [$row and $old: names and types](#row-and-old-names-and-types)
+  * [$row column types](#row-column-types)
+  * [Patch scope: root vs embedded](#patch-scope-root-vs-embedded)
+  * [Scenario: column transformation](#scenario-column-transformation)
+  * [Scenario: aggregation with embedded tables](#scenario-aggregation-with-embedded-tables)
+  * [Scenario: delta computations](#scenario-delta-computations)
+  * [Scenario: computed derived fields](#scenario-computed-derived-fields)
+  * [Scenario: document metadata](#scenario-document-metadata)
+  * [Scenario: loading related documents](#scenario-loading-related-documents)
+  * [Idempotency and failover](#idempotency-and-failover)
+  * [Step limit](#step-limit)
+  * [Capabilities and limitations](#capabilities-and-limitations)
+  * [Test a patch via REST API](#test-a-patch-via-rest-api)
 
 </Admonition>
 
-<Panel heading="When Patches Run">
+<Panel heading="When patches run">
 
 | Event | Patch property | Runs? |
 |-------|---------------|-------|
@@ -44,7 +45,7 @@ The `OnDelete.Patch` on `CdcSinkOnDeleteConfig` handles DELETE separately.
 
 </Panel>
 
-<Panel heading="Available Variables">
+<Panel heading="Available variables">
 
 | Variable | Available | Type | Description |
 |----------|-----------|------|-------------|
@@ -55,7 +56,7 @@ The `OnDelete.Patch` on `CdcSinkOnDeleteConfig` handles DELETE separately.
 
 </Panel>
 
-<Panel heading="$row and $old: Names and Types">
+<Panel heading="$row and $old: names and types">
 
 `$row` and `$old` look similar but represent fundamentally different things:
 
@@ -63,7 +64,7 @@ The `OnDelete.Patch` on `CdcSinkOnDeleteConfig` handles DELETE separately.
 |--|--------|--------|
 | **Contains** | The incoming SQL row from the CDC event | The previous state of the RavenDB document (or embedded item) |
 | **Property names** | Original SQL column names (`customer_name`) | Mapped RavenDB property names (`CustomerName`) |
-| **Value types** | Raw SQL types (see [$row Column Types](#row-column-types)) | Stored JSON types (whatever was last written to RavenDB) |
+| **Value types** | Raw SQL types (see [$row column types](#row-column-types)) | Stored JSON types (whatever was last written to RavenDB) |
 | **Available on INSERT** | ✓ | ✗ (null) |
 | **Available on UPDATE** | ✓ | ✓ |
 | **Available on DELETE** | ✓ | ✓ |
@@ -117,11 +118,11 @@ written to the document and therefore never appear in `$old`.
 |--|--------|--------|
 | **Contains** | The incoming SQL row from the CDC event | The RavenDB document after column mapping was applied |
 | **Property names** | Original SQL column names (`customer_name`) | Mapped RavenDB property names (`CustomerName`) |
-| **Value types** | Raw SQL types (see [$row Column Types](#row-column-types)) | Mapped JSON types written to the document |
+| **Value types** | Raw SQL types (see [$row column types](#row-column-types)) | Mapped JSON types written to the document |
 
 </Panel>
 
-<Panel heading="$row Column Types">
+<Panel heading="$row column types">
 
 `$row` exposes all SQL columns using their **original column names** (not the mapped
 RavenDB property names). The JavaScript type of each value depends on the source
@@ -192,7 +193,7 @@ this.Embedding = $row.embedding;
 
 </Panel>
 
-<Panel heading="Patch Scope: Root vs Embedded">
+<Panel heading="Patch scope: root vs embedded">
 
 **Root table patches** operate on the root document:
 
@@ -232,7 +233,7 @@ embedded-table row, and `$old` is the previous embedded item.
 
 </Panel>
 
-<Panel heading="Scenario: Column Transformation">
+<Panel heading="Scenario: column transformation">
 
 Transform or combine SQL columns into RavenDB properties:
 
@@ -250,7 +251,7 @@ this.CreatedAt = new Date($row.created_unix * 1000).toISOString();
 
 </Panel>
 
-<Panel heading="Scenario: Aggregation with Embedded Tables">
+<Panel heading="Scenario: aggregation with embedded tables">
 
 Recompute parent-level totals whenever an embedded item is added or updated.
 
@@ -301,7 +302,7 @@ so re-summing `this.Lines` gives the correct post-deletion total.
 
 </Panel>
 
-<Panel heading="Scenario: Delta Computations">
+<Panel heading="Scenario: delta computations">
 
 Use `$old` to compute a delta when an embedded item changes, keeping a running total
 without recomputing from scratch.
@@ -353,7 +354,7 @@ The `$old` variable in the OnDelete patch contains the item's last known state b
 
 </Panel>
 
-<Panel heading="Scenario: Computed Derived Fields">
+<Panel heading="Scenario: computed derived fields">
 
 Compute fields from unmapped columns that you don't want to store directly:
 
@@ -378,7 +379,7 @@ Patch = @"
 
 </Panel>
 
-<Panel heading="Scenario: Document Metadata">
+<Panel heading="Scenario: document metadata">
 
 Patches can set RavenDB document metadata, including expiration:
 
@@ -400,7 +401,7 @@ this['@metadata']['SourceTable'] = 'orders';
 
 </Panel>
 
-<Panel heading="Scenario: Loading Related Documents">
+<Panel heading="Scenario: loading related documents">
 
 Use `load()` to load a related RavenDB document and denormalize its data:
 
@@ -442,7 +443,7 @@ do not have the null-handling complexity of `load()`.
 
 </Panel>
 
-<Panel heading="Idempotency and Failover">
+<Panel heading="Idempotency and failover">
 
 After a failover, CDC Sink resumes from the replicated state, which may be older
 than the last work the previous mentor node completed. Some changes may be re-read
@@ -474,13 +475,13 @@ is always safe.
 
 </Panel>
 
-<Panel heading="Step Limit">
+<Panel heading="Step limit">
 
 Patch scripts are bounded by a **step quota** rather than a time limit. Each operation
 in the script (assignment, loop iteration, function call) consumes steps.
 
 The limit is controlled by the `Patching.MaxStepsForScript` configuration setting.
-See [Patching Configuration](../../../configuration/patching-configuration.mdx).
+See [Patching Configuration](../../../../server/configuration/patching-configuration.mdx).
 
 If a patch exceeds the limit, the CDC operation fails and is retried.
 
@@ -488,7 +489,7 @@ Keep patches focused and efficient - prefer `.filter()` + `.reduce()` over neste
 
 </Panel>
 
-<Panel heading="Capabilities and Limitations">
+<Panel heading="Capabilities and limitations">
 
 **What patches can do:**
 
@@ -506,5 +507,17 @@ Keep patches focused and efficient - prefer `.filter()` + `.reduce()` over neste
 * Make HTTP calls or API requests
 * Access the file system
 * Load documents from other RavenDB databases
+
+</Panel>
+
+<Panel heading="Test a patch via REST API">
+
+Validate a patch script against sample row data before saving the task. This is the
+endpoint behind the Studio's patch-test tool - it runs the script and returns the resulting
+document without persisting anything.
+
+| Method | Endpoint | Auth |
+|--------|----------|------|
+| `POST` | `/databases/{databaseName}/admin/cdc-sink/test` | `DatabaseAdmin` |
 
 </Panel>

@@ -1,0 +1,90 @@
+import Admonition from '@theme/Admonition';
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import Panel from '@site/src/components/Panel';
+
+<Admonition type="note" title="">
+
+* Retrieve the current state of a CDC Sink task - its configuration, task state,
+  connection status, and responsible node.
+
+* This article shows how to **get task info**, both with the Client API and in the Studio.
+
+* In this article:
+  * [Get task info via Client API](#get-task-info-via-client-api)
+  * [Get task info via Studio](#get-task-info-via-studio)
+  * [Get task info via REST API](#get-task-info-via-rest-api)
+
+</Admonition>
+
+<Panel heading="Get task info via Client API">
+
+Use `GetOngoingTaskInfoOperation` with the task ID and `OngoingTaskType.CdcSink`
+to retrieve the current state of a CDC Sink task.
+
+<Tabs>
+<TabItem value="csharp" label="csharp">
+
+```csharp
+var taskInfo = await store.Maintenance.SendAsync(
+    new GetOngoingTaskInfoOperation(taskId, OngoingTaskType.CdcSink));
+```
+
+</TabItem>
+</Tabs>
+
+You can also look up the task by name:
+
+<Tabs>
+<TabItem value="csharp" label="csharp">
+
+```csharp
+var taskInfo = await store.Maintenance.SendAsync(
+    new GetOngoingTaskInfoOperation("OrdersSync", OngoingTaskType.CdcSink));
+```
+
+</TabItem>
+</Tabs>
+
+The result exposes the task's identity and runtime status, including:
+
+| Field | Description |
+|-------|-------------|
+| `TaskId` / `TaskName` | Task identity |
+| `TaskState` | `Enabled`, `Disabled`, or `PartiallyEnabled` |
+| `TaskConnectionStatus` | `Active`, `NotActive`, `Reconnect`, or `NotOnThisNode` |
+| `ResponsibleNode` | The cluster node currently running the task |
+| `Error` | The last error reported by the task, if any |
+
+<Admonition type="note" title="">
+For performance and progress metrics (per-table statistics, initial-load progress),
+see [Monitoring](../../../../../server/ongoing-tasks/cdc-sink/monitoring.mdx).
+</Admonition>
+
+</Panel>
+
+<Panel heading="Get task info via Studio">
+
+To view a CDC Sink task's info in the Studio:
+
+1. Navigate to **Databases** → your database → **Tasks** → **Ongoing Tasks**.
+2. The task list shows each task's **name**, **connection string name**, **task state**,
+   **connection status**, and **responsible node**. During the initial load it also shows
+   which tables have been scanned.
+3. Click the task to open the detail view with per-table statistics.
+
+{/* image: Ongoing Tasks list - CDC Sink task row showing state, connection status, responsible node */}
+
+</Panel>
+
+<Panel heading="Get task info via REST API">
+
+CDC Sink uses the shared ongoing-task info endpoint. Identify the task either by ID
+(`key`) or by name (`taskName`), together with `type=CdcSink`.
+
+| Method | Endpoint | Auth |
+|--------|----------|------|
+| `GET` | `/databases/{databaseName}/tasks?key={taskId}&type=CdcSink` | `ValidUser` |
+| `GET` | `/databases/{databaseName}/tasks?taskName={name}&type=CdcSink` | `ValidUser` |
+
+</Panel>

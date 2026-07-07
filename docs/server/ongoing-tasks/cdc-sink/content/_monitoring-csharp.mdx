@@ -9,14 +9,15 @@ import Panel from '@site/src/components/Panel';
   fallback behavior, and statistics available through the Management Studio and API.
 
 * In this article:
-  * [Task State](#task-state)
-  * [Fallback Mode](#fallback-mode)
+  * [Task state](#task-state)
+  * [Fallback mode](#fallback-mode)
   * [Statistics](#statistics)
   * [Notifications](#notifications)
+  * [Performance REST endpoints](#performance-rest-endpoints)
 
 </Admonition>
 
-<Panel heading="Task State">
+<Panel heading="Task state">
 
 A CDC Sink task's status is reported through two standard ongoing-task fields:
 `TaskState` (whether the task is enabled) and `TaskConnectionStatus` (the task's
@@ -28,7 +29,7 @@ The current state is visible in the **Ongoing Tasks** view in the Management Stu
 
 </Panel>
 
-<Panel heading="Fallback Mode">
+<Panel heading="Fallback mode">
 
 When CDC Sink cannot reach the source database, it enters **fallback mode** rather
 than failing immediately.
@@ -40,7 +41,7 @@ In fallback mode:
 
 Retry delay doubles on each consecutive failure, up to the cap set by
 `CdcSink.MaxFallbackTimeInSec` (default 15 minutes).
-See [Server Configuration](../server-configuration.mdx).
+See [Server Configuration](../../../../server/ongoing-tasks/cdc-sink/server-configuration.mdx).
 
 </Panel>
 
@@ -97,7 +98,7 @@ making it straightforward to diagnose the root cause.
 
 </Panel>
 
-<Panel heading="Error Handling">
+<Panel heading="Error handling">
 
 CDC Sink tolerates individual document processing errors - each failure is logged
 and recorded, but processing continues for the remaining documents in the batch.
@@ -110,10 +111,21 @@ the batch throws and the task enters fallback mode.
 **Fallback mode on error:**
 The task enters exponential backoff, starting at 5 seconds and doubling on each
 retry, up to the limit set by `CdcSink.MaxFallbackTimeInSec` (default 15 minutes).
-See [Server Configuration](../server-configuration.mdx) and [Fallback Mode](#fallback-mode).
+See [Server Configuration](../../../../server/ongoing-tasks/cdc-sink/server-configuration.mdx) and [Fallback mode](#fallback-mode).
 
 **Patch errors:**
 Patch errors - including `MaxSteps exceeded` - fail only the affected document.
 The rest of the batch continues normally.
+
+</Panel>
+
+<Panel heading="Performance REST endpoints">
+
+CDC Sink exposes performance statistics through dedicated endpoints:
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| `GET` | `/databases/{databaseName}/cdc-sink/performance` | `ValidUser` | Get performance statistics |
+| `GET` | `/databases/{databaseName}/cdc-sink/performance/live` | `ValidUser` | WebSocket stream of live performance statistics |
 
 </Panel>

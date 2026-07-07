@@ -1,6 +1,6 @@
 ---
-title: "CDC Sink: Configuration Reference"
-sidebar_label: Configuration Syntax
+title: "CDC Sink: Configuration Syntax"
+sidebar_label: "Configuration Syntax"
 description: "Documents all configuration classes used to define a CDC Sink task, including CdcSinkConfiguration, table configs, CdcColumnMapping, and related types."
 sidebar_position: 1
 see_also:
@@ -35,8 +35,6 @@ import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 import Panel from '@site/src/components/Panel';
 
-# CDC Sink: Configuration Reference
-
 <Admonition type="note" title="">
 
 * This page documents all configuration classes used to define a CDC Sink task.
@@ -51,7 +49,7 @@ import Panel from '@site/src/components/Panel';
   * [CdcColumnType](#cdccolumntype)
   * [CdcSinkOnDeleteConfig](#cdcsinkondeleteconfig)
   * [CdcSinkRelationType](#cdcsinkrelationtype)
-  * [REST API Endpoints](#rest-api-endpoints)
+  * [REST API endpoints](#rest-api-endpoints)
 
 </Admonition>
 
@@ -99,12 +97,12 @@ Setting these explicitly is useful when:
 If tables are missing from the publication, CDC Sink attempts `ALTER PUBLICATION ... ADD TABLE`
 automatically on startup (requires sufficient permissions).
 
-See [Initial Setup](../source-database-setup/postgres/initial-setup.mdx) for details.
+See [Initial Setup](../../../../server/ongoing-tasks/cdc-sink/source-database-setup/postgres/initial-setup.mdx) for details.
 
 <Admonition type="note" title="">
 For embedded tables where the join columns are not part of the primary key, the
 PostgreSQL table must have `REPLICA IDENTITY` configured so that DELETE events include
-the join column values. See [REPLICA IDENTITY](../source-database-setup/postgres/replica-identity.mdx).
+the join column values. See [REPLICA IDENTITY](../../../../server/ongoing-tasks/cdc-sink/source-database-setup/postgres/replica-identity.mdx).
 </Admonition>
 
 </Panel>
@@ -225,7 +223,7 @@ Specifies the structure of embedded data in the document.
 
 </Panel>
 
-<Panel heading="REST API Endpoints">
+<Panel heading="REST API endpoints">
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|

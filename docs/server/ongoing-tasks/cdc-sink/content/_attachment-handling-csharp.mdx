@@ -12,19 +12,19 @@ import Panel from '@site/src/components/Panel';
 * This applies to both root tables and embedded tables.
 
 * In this article:
-  * [Root Table Attachments](#root-table-attachments)
-  * [Embedded Table Attachments](#embedded-table-attachments)
-  * [Attachment Naming](#attachment-naming)
-  * [Attachment Lifecycle](#attachment-lifecycle)
+  * [Root table attachments](#root-table-attachments)
+  * [Embedded table attachments](#embedded-table-attachments)
+  * [Attachment naming](#attachment-naming)
+  * [Attachment lifecycle](#attachment-lifecycle)
 
 </Admonition>
 
-<Panel heading="Root Table Attachments">
+<Panel heading="Root table attachments">
 
 Given a SQL table with a binary column:
 
 <Tabs>
-<TabItem value="sql" label="sql">
+<TabItem value="sql" label="SQL">
 
 ```sql
 CREATE TABLE files (
@@ -73,7 +73,7 @@ values, `text/plain` for text values.
 
 </Panel>
 
-<Panel heading="Embedded Table Attachments">
+<Panel heading="Embedded table attachments">
 
 Binary columns on embedded tables are stored as attachments on the **parent** document.
 The attachment name is automatically prefixed to ensure uniqueness.
@@ -81,7 +81,7 @@ The attachment name is automatically prefixed to ensure uniqueness.
 Given a parent `products` table and a child `photos` table:
 
 <Tabs>
-<TabItem value="sql" label="sql">
+<TabItem value="sql" label="SQL">
 
 ```sql
 CREATE TABLE products (
@@ -135,7 +135,7 @@ the primary key value.
 
 </Panel>
 
-<Panel heading="Attachment Naming">
+<Panel heading="Attachment naming">
 
 **Root table attachments:**
 
@@ -167,7 +167,7 @@ PrimaryKeyColumns = ["date", "seq"]  → date='2024-01', seq=3
 
 </Panel>
 
-<Panel heading="Attachment Lifecycle">
+<Panel heading="Attachment lifecycle">
 
 * **INSERT** - Attachment is created on the document
 * **UPDATE** - Attachment is replaced with the new binary data

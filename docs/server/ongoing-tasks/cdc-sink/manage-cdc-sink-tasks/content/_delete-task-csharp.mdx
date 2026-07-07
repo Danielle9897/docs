@@ -1,0 +1,92 @@
+import Admonition from '@theme/Admonition';
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import Panel from '@site/src/components/Panel';
+
+<Admonition type="note" title="">
+
+* Deleting a CDC Sink task removes it from RavenDB and stops consuming changes from the
+  source database. Documents already written to RavenDB are **not** removed.
+
+* This article shows how to **delete** a CDC Sink task, both with the Client API and in the Studio.
+
+* In this article:
+  * [Delete via Client API](#delete-via-client-api)
+  * [Delete via Studio](#delete-via-studio)
+  * [Delete via REST API](#delete-via-rest-api)
+  * [Clean up source-database artifacts](#clean-up-source-database-artifacts)
+
+</Admonition>
+
+<Panel heading="Delete via Client API">
+
+Use `DeleteOngoingTaskOperation` with the task ID and `OngoingTaskType.CdcSink`.
+
+<Tabs>
+<TabItem value="csharp" label="csharp">
+
+```csharp
+await store.Maintenance.SendAsync(
+    new DeleteOngoingTaskOperation(taskId, OngoingTaskType.CdcSink));
+```
+
+</TabItem>
+</Tabs>
+
+</Panel>
+
+<Panel heading="Delete via Studio">
+
+To delete a CDC Sink task in the Studio:
+
+1. Navigate to **Databases** → your database → **Tasks** → **Ongoing Tasks**.
+2. Locate the CDC Sink task in the list.
+3. Click the task's **delete** (trash) button and confirm.
+
+{/* image: Ongoing Tasks list - CDC Sink task with delete (trash) action */}
+
+</Panel>
+
+<Panel heading="Delete via REST API">
+
+CDC Sink uses the shared ongoing-task delete endpoint. Pass the task ID as `id` and the
+task type as `type=CdcSink`.
+
+| Method | Endpoint | Auth |
+|--------|----------|------|
+| `DELETE` | `/databases/{databaseName}/admin/tasks?id={taskId}&type=CdcSink` | `DatabaseAdmin` |
+
+</Panel>
+
+<Panel heading="Clean up source-database artifacts">
+
+Deleting a CDC Sink task in RavenDB only removes the task on the **RavenDB** side.
+RavenDB does **not** connect back to the source database to remove the change-tracking
+objects that were created there. That cleanup must be performed by the
+**administrator of the source database** (the PostgreSQL, SQL Server, or MySQL/MariaDB
+admin) — **not** the RavenDB administrator.
+
+The artifacts that remain live **inside the source database**, and what they are
+depends on the source engine:
+
+* **PostgreSQL (logical replication):**
+  A **replication slot** and a **publication** are left behind.
+  The replication slot is the critical one to remove — while it exists, PostgreSQL
+  retains WAL segments for it indefinitely, which can eventually fill the disk.
+  Drop the slot with `pg_drop_replication_slot()` and drop the publication with
+  `DROP PUBLICATION`. See
+  [Cleanup and Maintenance](../../../../../server/ongoing-tasks/cdc-sink/source-database-setup/postgres/cleanup-and-maintenance.mdx).
+
+* **SQL Server (native CDC):**
+  CDC remains enabled at the table (and database) level, including the capture
+  instances, their change tables, and the CDC capture/cleanup **SQL Server Agent
+  jobs**. Disable CDC on the affected tables with `sys.sp_cdc_disable_table`
+  (and, if no other tables use CDC, on the database with `sys.sp_cdc_disable_db`).
+
+* **MySQL / MariaDB (binlog):**
+  Binary logging is a server-wide setting rather than a per-task object, so there is
+  usually nothing task-specific to remove. However, any dedicated **replication user
+  or granted privileges** created for the task remain and can be revoked if no longer
+  needed.
+
+</Panel>

@@ -15,13 +15,13 @@ import Panel from '@site/src/components/Panel';
   as a root table.
 
 * In this article:
-  * [Basic Configuration](#basic-configuration)
-  * [Composite Foreign Keys](#composite-foreign-keys)
-  * [Linked vs Embedded](#linked-vs-embedded)
+  * [Basic configuration](#basic-configuration)
+  * [Composite foreign keys](#composite-foreign-keys)
+  * [Linked vs embedded](#linked-vs-embedded)
 
 </Admonition>
 
-<Panel heading="Basic Configuration">
+<Panel heading="Basic configuration">
 
 `CdcSinkLinkedTableConfig` is placed inside a root table's (or embedded table's) `LinkedTables` list:
 
@@ -82,7 +82,7 @@ a second network call.
 
 </Panel>
 
-<Panel heading="Composite Foreign Keys">
+<Panel heading="Composite foreign keys">
 
 When the target table has a composite primary key, the linked reference includes
 all parts of that key:
@@ -111,7 +111,7 @@ With `customer_region = 'US'` and `customer_id = 42`, the document gets:
 
 </Panel>
 
-<Panel heading="Linked vs Embedded">
+<Panel heading="Linked vs embedded">
 
 | Consideration | Embedded | Linked |
 |--------------|----------|--------|

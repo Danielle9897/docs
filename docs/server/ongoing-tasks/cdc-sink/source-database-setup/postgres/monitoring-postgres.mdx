@@ -23,28 +23,26 @@ import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 import Panel from '@site/src/components/Panel';
 
-# CDC Sink for PostgreSQL: Monitoring PostgreSQL
-
 <Admonition type="note" title="">
 
 * This page covers PostgreSQL-side monitoring for CDC Sink - replication slot health,
   lag, and WAL usage.
 
-* For RavenDB-side monitoring, see [Monitoring](../../monitoring.mdx).
+* For RavenDB-side monitoring, see [Monitoring](../../../../../server/ongoing-tasks/cdc-sink/monitoring.mdx).
 
 * In this article:
-  * [Replication Slot Health](#replication-slot-health)
-  * [Replication Lag](#replication-lag)
-  * [WAL Disk Usage](#wal-disk-usage)
+  * [Replication slot health](#replication-slot-health)
+  * [Replication lag](#replication-lag)
+  * [WAL disk usage](#wal-disk-usage)
 
 </Admonition>
 
-<Panel heading="Replication Slot Health">
+<Panel heading="Replication slot health">
 
 Check that CDC Sink replication slots are active and being consumed:
 
 <Tabs>
-<TabItem value="sql" label="sql">
+<TabItem value="sql" label="SQL">
 
 ```sql
 SELECT slot_name, active, confirmed_flush_lsn
@@ -66,12 +64,12 @@ for an extended period, investigate the task state in RavenDB Studio.
 
 </Panel>
 
-<Panel heading="Replication Lag">
+<Panel heading="Replication lag">
 
 Replication lag measures how far behind the slot is relative to the current WAL position:
 
 <Tabs>
-<TabItem value="sql" label="sql">
+<TabItem value="sql" label="SQL">
 
 ```sql
 SELECT slot_name,
@@ -93,7 +91,7 @@ of changes in the source database. Consider:
 
 </Panel>
 
-<Panel heading="WAL Disk Usage">
+<Panel heading="WAL disk usage">
 
 PostgreSQL retains WAL segments until all replication slots have consumed them.
 An inactive or slow slot can cause WAL to accumulate on disk.
@@ -101,7 +99,7 @@ An inactive or slow slot can cause WAL to accumulate on disk.
 Check approximate WAL retained per slot:
 
 <Tabs>
-<TabItem value="sql" label="sql">
+<TabItem value="sql" label="SQL">
 
 ```sql
 SELECT slot_name, active,
@@ -116,6 +114,6 @@ WHERE slot_name LIKE 'rvn_cdc_s_%';
 High `retained_wal_bytes` on an inactive slot indicates the slot is not being
 consumed and is holding WAL. If the slot corresponds to a deleted or abandoned
 CDC Sink task, drop it.
-See [Cleanup and Maintenance](./cleanup-and-maintenance.mdx).
+See [Cleanup and Maintenance](../../../../../server/ongoing-tasks/cdc-sink/source-database-setup/postgres/cleanup-and-maintenance.mdx).
 
 </Panel>

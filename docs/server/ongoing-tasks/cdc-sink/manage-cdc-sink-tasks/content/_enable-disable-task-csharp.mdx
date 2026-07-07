@@ -1,0 +1,87 @@
+import Admonition from '@theme/Admonition';
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import Panel from '@site/src/components/Panel';
+
+<Admonition type="note" title="">
+
+* A CDC Sink task can be paused (disabled) and resumed (enabled) without deleting it.
+  A disabled task keeps its full configuration but stops consuming changes from the source.
+
+* This article shows how to **enable and disable** a CDC Sink task, both with the Client API
+  and in the Studio.
+
+* In this article:
+  * [Enable / disable via Client API](#enable--disable-via-client-api)
+  * [Enable / disable via Studio](#enable--disable-via-studio)
+  * [Enable / disable via REST API](#enable--disable-via-rest-api)
+
+</Admonition>
+
+<Panel heading="Enable / disable via Client API">
+
+Pause or resume a CDC Sink task using `ToggleOngoingTaskStateOperation`.
+Pass the task ID, the task type `OngoingTaskType.CdcSink`, and `disable: true` to pause
+or `disable: false` to resume.
+
+<Tabs>
+<TabItem value="csharp" label="csharp">
+
+```csharp
+// Pause (disable) the task
+await store.Maintenance.SendAsync(
+    new ToggleOngoingTaskStateOperation(taskId, OngoingTaskType.CdcSink, disable: true));
+
+// Resume (enable) the task
+await store.Maintenance.SendAsync(
+    new ToggleOngoingTaskStateOperation(taskId, OngoingTaskType.CdcSink, disable: false));
+```
+
+</TabItem>
+</Tabs>
+
+<Admonition type="warning" title="">
+**PostgreSQL:** Pausing a CDC Sink task stops the replication slot from being consumed.
+PostgreSQL retains WAL segments for unconsumed slots, so pausing for an extended period
+causes WAL to accumulate on disk. Monitor disk usage if a task is paused for more than
+a short time.
+See [Monitoring PostgreSQL](../../../../../server/ongoing-tasks/cdc-sink/source-database-setup/postgres/monitoring-postgres.mdx).
+
+**SQL Server:** Pausing a CDC Sink task for an extended period (days) may cause SQL Server
+to trim the CDC change tables, removing rows that have not yet been consumed. A short
+pause is safe. If the task is paused long enough that trimming occurs, CDC Sink will
+report an error on resume - the task may need to be recreated rather than simply resumed.
+</Admonition>
+
+</Panel>
+
+<Panel heading="Enable / disable via Studio">
+
+To enable or disable a CDC Sink task in the Studio:
+
+1. Navigate to **Databases** → your database → **Tasks** → **Ongoing Tasks**.
+2. Locate the CDC Sink task in the list.
+3. Click the task's **Enable** / **Disable** toggle (or open the task and use the
+   **Task State** selector, then **Save**).
+
+{/* image: Ongoing Tasks list - CDC Sink task with Enable/Disable toggle */}
+
+The task's state is shown in the list as `Enabled`, `Disabled`, or `PartiallyEnabled`.
+
+<Admonition type="note" title="">
+You can also create a task in a disabled state by setting **Task State** to *Disabled*
+on the creation form, or `Disabled = true` on the `CdcSinkConfiguration`.
+</Admonition>
+
+</Panel>
+
+<Panel heading="Enable / disable via REST API">
+
+CDC Sink uses the shared ongoing-task state endpoint. Pass the task ID as `key`, the task
+type as `type=CdcSink`, and `disable=true` to pause or `disable=false` to resume.
+
+| Method | Endpoint | Auth |
+|--------|----------|------|
+| `POST` | `/databases/{databaseName}/admin/tasks/state?key={taskId}&type=CdcSink&disable={true\|false}` | `DatabaseAdmin` |
+
+</Panel>

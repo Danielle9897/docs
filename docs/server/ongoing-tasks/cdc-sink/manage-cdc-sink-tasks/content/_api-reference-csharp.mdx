@@ -9,15 +9,15 @@ import Panel from '@site/src/components/Panel';
   the RavenDB Client API.
 
 * In this article:
-  * [Add a CDC Sink Task](#add-a-cdc-sink-task)
-  * [Update a CDC Sink Task](#update-a-cdc-sink-task)
-  * [Get Task Info](#get-task-info)
-  * [Toggle Task State](#toggle-task-state)
-  * [Delete a Task](#delete-a-task)
+  * [Add a CDC Sink task](#add-a-cdc-sink-task)
+  * [Update a CDC Sink task](#update-a-cdc-sink-task)
+  * [Get task info](#get-task-info)
+  * [Toggle task state](#toggle-task-state)
+  * [Delete a task](#delete-a-task)
 
 </Admonition>
 
-<Panel heading="Add a CDC Sink Task">
+<Panel heading="Add a CDC Sink task">
 
 Use `AddCdcSinkOperation` to create a new CDC Sink task:
 
@@ -64,7 +64,7 @@ long taskId = result.TaskId;
 
 </Panel>
 
-<Panel heading="Update a CDC Sink Task">
+<Panel heading="Update a CDC Sink task">
 
 Use `UpdateCdcSinkOperation` to modify an existing task.
 Pass the full updated configuration including the `TaskId`:
@@ -116,17 +116,17 @@ SELECT slot_name FROM pg_replication_slots WHERE slot_name LIKE 'rvn_cdc_s_%';
 SELECT pubname FROM pg_publication WHERE pubname LIKE 'rvn_cdc_p_%';
 ```
 
-See [Initial Setup](../../source-database-setup/postgres/initial-setup.mdx) for
+See [Initial Setup](../../../../../server/ongoing-tasks/cdc-sink/source-database-setup/postgres/initial-setup.mdx) for
 guidance on slot and publication management.
 
 Dropped or orphaned slots and publications must be cleaned up manually by the
 database administrator.
-See [Cleanup and Maintenance](../../source-database-setup/postgres/cleanup-and-maintenance.mdx).
+See [Cleanup and Maintenance](../../../../../server/ongoing-tasks/cdc-sink/source-database-setup/postgres/cleanup-and-maintenance.mdx).
 </Admonition>
 
 </Panel>
 
-<Panel heading="Get Task Info">
+<Panel heading="Get task info">
 
 Use `GetOngoingTaskInfoOperation` to retrieve the current state of a CDC Sink task:
 
@@ -143,7 +143,7 @@ var taskInfo = await store.Maintenance.SendAsync(
 
 </Panel>
 
-<Panel heading="Toggle Task State">
+<Panel heading="Toggle task state">
 
 Pause or resume a CDC Sink task using `ToggleOngoingTaskStateOperation`:
 
@@ -168,7 +168,7 @@ await store.Maintenance.SendAsync(
 PostgreSQL retains WAL segments for unconsumed slots, so pausing for an extended period
 causes WAL to accumulate on disk. Monitor disk usage if a task is paused for more than
 a short time.
-See [Monitoring PostgreSQL](../../source-database-setup/postgres/monitoring-postgres.mdx).
+See [Monitoring PostgreSQL](../../../../../server/ongoing-tasks/cdc-sink/source-database-setup/postgres/monitoring-postgres.mdx).
 
 **SQL Server:** Pausing a CDC Sink task for an extended period (days) may cause SQL Server
 to trim the CDC change tables, removing rows that have not yet been consumed. A short
@@ -178,7 +178,7 @@ report an error on resume - the task may need to be recreated rather than simply
 
 </Panel>
 
-<Panel heading="Delete a Task">
+<Panel heading="Delete a task">
 
 Use `DeleteOngoingTaskOperation` to delete a CDC Sink task:
 
@@ -196,7 +196,7 @@ await store.Maintenance.SendAsync(
 <Admonition type="warning" title="">
 Deleting the task in RavenDB does **not** drop the replication slot or publication
 in the source database. These must be cleaned up manually by the database administrator.
-See [Cleanup and Maintenance](../../source-database-setup/postgres/cleanup-and-maintenance.mdx).
+See [Cleanup and Maintenance](../../../../../server/ongoing-tasks/cdc-sink/source-database-setup/postgres/cleanup-and-maintenance.mdx).
 </Admonition>
 
 </Panel>

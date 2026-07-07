@@ -1,0 +1,122 @@
+import Admonition from '@theme/Admonition';
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import Panel from '@site/src/components/Panel';
+
+<Admonition type="note" title="">
+
+* CDC Sink task configuration is part of the database record, so it is included in database
+  **backups** (both logical and snapshot) and recreated when the database is **restored**.
+
+* Unlike import, a restored CDC Sink task **keeps its original enabled/disabled state** -
+  unless you set the `DisableOngoingTasks` restore option, which disables all ongoing tasks
+  (including CDC Sink) on the restored database.
+
+* This article shows how CDC Sink tasks behave across backup and restore, both with the
+  Client API and in the Studio.
+
+* In this article:
+  * [Backing up (Client API)](#backing-up-client-api)
+  * [Restoring (Client API)](#restoring-client-api)
+  * [Backup / restore via Studio](#backup--restore-via-studio)
+  * [Behavior summary](#behavior-summary)
+
+</Admonition>
+
+<Panel heading="Backing up (Client API)">
+
+CDC Sink tasks are captured automatically as part of the database record - there is no
+CDC-specific backup setting. Configure a periodic backup as usual:
+
+<Tabs>
+<TabItem value="csharp" label="csharp">
+
+```csharp
+var backupConfig = new PeriodicBackupConfiguration
+{
+    Name = "DailyBackup",
+    BackupType = BackupType.Backup,   // or BackupType.Snapshot
+    FullBackupFrequency = "0 2 * * *", // every day at 02:00
+    LocalSettings = new LocalSettings { FolderPath = @"/backups/db" }
+};
+
+await store.Maintenance.SendAsync(new UpdatePeriodicBackupOperation(backupConfig));
+```
+
+</TabItem>
+</Tabs>
+
+</Panel>
+
+<Panel heading="Restoring (Client API)">
+
+Restore the database with `RestoreBackupOperation`. Set `DisableOngoingTasks = true` on the
+restore configuration if you do **not** want the CDC Sink task (and other ongoing tasks) to
+start consuming changes immediately after restore.
+
+<Tabs>
+<TabItem value="csharp" label="csharp">
+
+```csharp
+var restoreConfig = new RestoreBackupConfiguration
+{
+    DatabaseName = "RestoredDb",
+    BackupLocation = @"/backups/db/2026-07-07-02-00",
+
+    // Recommended when restoring to a new environment so tasks don't
+    // start streaming from the source before you've reviewed them:
+    DisableOngoingTasks = true
+};
+
+var restoreOp = await store.Maintenance.Server.SendAsync(
+    new RestoreBackupOperation(restoreConfig));
+await restoreOp.WaitForCompletionAsync();
+```
+
+</TabItem>
+</Tabs>
+
+<Admonition type="warning" title="">
+If `DisableOngoingTasks` is left as `false`, a restored CDC Sink task that was enabled at
+backup time becomes **active immediately** and will connect to the source database. When
+restoring to a new environment, verify the connection string and source availability first -
+and for PostgreSQL confirm that the referenced replication slot and publication still exist.
+The task's runtime position is not restored, so it resumes with an initial load unless
+`SkipInitialLoad` is set.
+</Admonition>
+
+<Admonition type="warning" title="PostgreSQL: shared replication slot">
+Restore copies the task's `SlotName` and `PublicationName` verbatim. A PostgreSQL replication
+slot can have only **one active consumer**, so if the origin database's task is still enabled,
+the restored task cannot attach to the same slot and drops into fallback mode with a
+`Process is in error recovery (fallback mode)...` error. Disable the task on one of the two
+databases (or restore with `DisableOngoingTasks = true`), or give the restored task its own
+slot and publication before enabling it. See
+[One Active Consumer per Slot](../../../../../server/ongoing-tasks/cdc-sink/source-database-setup/postgres/initial-setup.mdx#one-active-consumer-per-slot).
+</Admonition>
+
+</Panel>
+
+<Panel heading="Backup / restore via Studio">
+
+* **Backup:** Navigate to **Databases** → your database → **Tasks** → **Backups** and create
+  or run a periodic backup task. CDC Sink tasks are included automatically as part of the
+  database record.
+* **Restore:** From **Databases** → **New database** → **from Backup**, choose the backup
+  location. Enable **Disable ongoing tasks after restore** so the CDC Sink task does not
+  begin consuming changes until you are ready.
+
+{/* image: Restore database dialog with "Disable ongoing tasks after restore" option */}
+
+</Panel>
+
+<Panel heading="Behavior summary">
+
+| Aspect | Backup / Restore behavior |
+|--------|---------------------------|
+| Task configuration | Included in the backup, recreated on restore |
+| Enabled/disabled state | Preserved on restore, **unless** `DisableOngoingTasks = true` |
+| Runtime position (last consumed change / LSN) | Not restored - task resumes with an initial load unless `SkipInitialLoad` |
+| PostgreSQL slot / publication | Live in the source database; must exist for a restored, enabled task to run |
+
+</Panel>

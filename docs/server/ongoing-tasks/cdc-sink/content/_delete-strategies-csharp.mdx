@@ -12,18 +12,18 @@ import Panel from '@site/src/components/Panel';
   the embedded item. The `OnDelete` configuration changes this.
 
 * In this article:
-  * [Default Behavior](#default-behavior)
-  * [OnDelete Configuration](#ondelete-configuration)
-  * [Pattern: Archive](#pattern-archive)
-  * [Pattern: Audit Trail](#pattern-audit-trail-root-document)
-  * [Pattern: Silent Ignore](#pattern-silent-ignore)
-  * [OnDelete for Embedded Tables](#ondelete-for-embedded-tables)
-  * [Behavior Summary](#behavior-summary)
-  * [DELETE Routing and REPLICA IDENTITY](#delete-routing-and-replica-identity)
+  * [Default behavior](#default-behavior)
+  * [OnDelete configuration](#ondelete-configuration)
+  * [Pattern: archive](#pattern-archive)
+  * [Pattern: audit trail](#pattern-audit-trail-root-document)
+  * [Pattern: silent ignore](#pattern-silent-ignore)
+  * [OnDelete for embedded tables](#ondelete-for-embedded-tables)
+  * [Behavior summary](#behavior-summary)
+  * [DELETE routing and REPLICA IDENTITY](#delete-routing-and-replica-identity)
 
 </Admonition>
 
-<Panel heading="Default Behavior">
+<Panel heading="Default behavior">
 
 When `OnDelete` is `null` (or not set):
 
@@ -33,7 +33,7 @@ When `OnDelete` is `null` (or not set):
 
 </Panel>
 
-<Panel heading="OnDelete Configuration">
+<Panel heading="OnDelete configuration">
 
 `CdcSinkOnDeleteConfig` has two properties:
 
@@ -72,7 +72,7 @@ document is not deleted.
 
 </Panel>
 
-<Panel heading="Pattern: Archive">
+<Panel heading="Pattern: archive">
 
 Keep the document in RavenDB but mark it as deleted. The patch runs to mark it,
 and `IgnoreDeletes = true` prevents the actual deletion:
@@ -99,7 +99,7 @@ field to exclude archived records.
 
 </Panel>
 
-<Panel heading="Pattern: Audit Trail (Root Document)">
+<Panel heading="Pattern: audit trail (root document)">
 
 When a root document is deleted, write an audit record to a separate RavenDB
 collection using `put()` before the deletion proceeds.
@@ -134,7 +134,7 @@ The audit record persists permanently.
 
 </Panel>
 
-<Panel heading="Pattern: Silent Ignore">
+<Panel heading="Pattern: silent ignore">
 
 Discard DELETE events without running any patch. Use this for append-only data
 where deletes should never result in document removal:
@@ -155,7 +155,7 @@ OnDelete = new CdcSinkOnDeleteConfig
 
 </Panel>
 
-<Panel heading="OnDelete for Embedded Tables">
+<Panel heading="OnDelete for embedded tables">
 
 The same `OnDelete` configuration works on embedded tables. For embedded tables:
 
@@ -239,7 +239,7 @@ side-effect logic.
 
 </Panel>
 
-<Panel heading="Behavior Summary">
+<Panel heading="Behavior summary">
 
 | IgnoreDeletes | Patch | Behavior |
 |---------------|-------|----------|
@@ -250,7 +250,7 @@ side-effect logic.
 
 </Panel>
 
-<Panel heading="DELETE Routing and REPLICA IDENTITY">
+<Panel heading="DELETE routing and REPLICA IDENTITY">
 
 For CDC Sink to route a DELETE event to the correct document or embedded item,
 the source database must include the necessary column values in the DELETE event.
@@ -266,7 +266,7 @@ configuration for DELETE routing.
 
 See:
 
-* [REPLICA IDENTITY](../source-database-setup/postgres/replica-identity.mdx) (PostgreSQL)
+* [REPLICA IDENTITY](../../../../server/ongoing-tasks/cdc-sink/source-database-setup/postgres/replica-identity.mdx) (PostgreSQL)
 
 **Skipping REPLICA IDENTITY requirements:** Set `OnDelete.IgnoreDeletes = true`
 to discard DELETE events for an embedded table entirely. This skips the REPLICA

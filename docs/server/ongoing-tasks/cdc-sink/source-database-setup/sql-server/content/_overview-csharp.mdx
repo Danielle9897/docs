@@ -14,7 +14,7 @@ import Panel from '@site/src/components/Panel';
 
 </Admonition>
 
-<Panel heading="Connection String">
+<Panel heading="Connection string">
 
 Use a `SqlConnectionString` with `FactoryName` set to `"Microsoft.Data.SqlClient"`:
 
@@ -42,7 +42,7 @@ SQL Server CDC must be enabled on the source database and on each table you want
 to capture:
 
 <Tabs>
-<TabItem value="sql" label="sql">
+<TabItem value="sql" label="SQL">
 
 ```sql
 -- Enable CDC on the database
@@ -62,18 +62,18 @@ The SQL Server Agent service must be running for CDC to function.
 
 </Panel>
 
-<Panel heading="Polling Behavior">
+<Panel heading="Polling behavior">
 
 Unlike PostgreSQL (which uses streaming replication), SQL Server CDC Sink uses polling.
 The `CdcSink.SqlServer.PollIntervalInSec` server configuration key controls how frequently
-the task polls for new changes. See [Server Configuration](../../../server-configuration.mdx).
+the task polls for new changes. See [Server Configuration](../../../../../../server/ongoing-tasks/cdc-sink/server-configuration.mdx).
 
 </Panel>
 
 <Panel heading="Configuration">
 
 The CDC Sink task configuration is the same across all database engines.
-See [Configuration Reference](../../../manage-cdc-sink-tasks/configuration-reference.mdx) for full details.
+See [Configuration Reference](../../../../../../server/ongoing-tasks/cdc-sink/manage-cdc-sink-tasks/configuration-reference.mdx) for full details.
 
 The `SourceTableSchema` defaults to `"dbo"` when using SQL Server.
 

@@ -12,15 +12,15 @@ import Panel from '@site/src/components/Panel';
   are updated and deleted.
 
 * In this article:
-  * [Basic Configuration](#basic-configuration)
-  * [Join Columns and Primary Key Interaction](#join-columns-and-primary-key-interaction)
-  * [Matching Items on Update and Delete](#matching-items-on-update-and-delete)
-  * [Deep Nesting](#deep-nesting)
-  * [Attachments on Embedded Items](#attachments-on-embedded-items)
+  * [Basic configuration](#basic-configuration)
+  * [Join columns and primary key interaction](#join-columns-and-primary-key-interaction)
+  * [Matching items on update and delete](#matching-items-on-update-and-delete)
+  * [Deep nesting](#deep-nesting)
+  * [Attachments on embedded items](#attachments-on-embedded-items)
 
 </Admonition>
 
-<Panel heading="Basic Configuration">
+<Panel heading="Basic configuration">
 
 Each embedded table is configured with a `CdcSinkEmbeddedTableConfig` object inside the
 root table's `EmbeddedTables` list. This configuration defines the related SQL table, the
@@ -56,7 +56,7 @@ new CdcSinkEmbeddedTableConfig
 
 </Panel>
 
-<Panel heading="Join Columns and Primary Key Interaction">
+<Panel heading="Join columns and primary key interaction">
 
 ### Purpose of JoinColumns
 
@@ -87,7 +87,7 @@ JoinColumns = ["order_id", "line_no"]   // Column count does not match the paren
 </TabItem>
 </Tabs>
 
-### DELETE Events
+### DELETE events
 
 For DELETE events, the source database must include the join column values so CDC Sink
 can route the delete to the correct parent document.
@@ -96,16 +96,16 @@ By default, many databases only include primary key columns in DELETE events. If
 join column is _not_ in the embedded table's primary key, additional source database
 configuration is required.
 
-**PostgreSQL:** See [REPLICA IDENTITY](../source-database-setup/postgres/replica-identity.mdx)
+**PostgreSQL:** See [REPLICA IDENTITY](../../../../server/ongoing-tasks/cdc-sink/source-database-setup/postgres/replica-identity.mdx)
 for how CDC Sink handles this automatically when it has sufficient permissions, or how
 a DBA can configure it manually.
 
-### Avoiding REPLICA IDENTITY Requirements
+### Avoiding REPLICA IDENTITY requirements
 
 The cleanest solution is to include the join column in the embedded table's primary key:
 
 <Tabs>
-<TabItem value="sql" label="sql">
+<TabItem value="sql" label="SQL">
 
 ```sql
 -- SQL schema:
@@ -139,11 +139,11 @@ Alternatively, set `OnDelete.IgnoreDeletes = true` to skip delete routing entire
 if deletes on that embedded table don't need to be processed. This only skips delete
 routing when no `OnDelete.Patch` is configured. If a delete patch is configured, CDC Sink
 still routes the delete to the parent document so the patch can run.
-See [Delete Strategies](../delete-strategies.mdx).
+See [Delete Strategies](../../../../server/ongoing-tasks/cdc-sink/delete-strategies.mdx).
 
 </Panel>
 
-<Panel heading="Matching Items on Update and Delete">
+<Panel heading="Matching items on update and delete">
 
 When an UPDATE or DELETE arrives for an embedded row, CDC Sink must find the correct
 item within the parent document's array or map.
@@ -180,7 +180,7 @@ configured property. Updates merge into that object, and deletes set the propert
 
 </Panel>
 
-<Panel heading="Deep Nesting">
+<Panel heading="Deep nesting">
 
 Embedded tables can contain their own `EmbeddedTables`, creating hierarchies
 with multiple levels.
@@ -195,7 +195,7 @@ The `employees` table must have `company_id` (the root PK) even though it only
 directly joins to `departments`:
 
 <Tabs>
-<TabItem value="sql" label="sql">
+<TabItem value="sql" label="SQL">
 
 ```sql
 CREATE TABLE employees (
@@ -241,7 +241,7 @@ without an additional lookup, which is not supported.
 
 </Panel>
 
-<Panel heading="Attachments on Embedded Items">
+<Panel heading="Attachments on embedded items">
 
 Binary columns from embedded tables can be stored as RavenDB attachments by adding
 them to `Columns` with `Type = CdcColumnType.Attachment`.

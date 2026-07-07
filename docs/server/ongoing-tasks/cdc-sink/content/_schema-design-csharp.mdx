@@ -10,17 +10,17 @@ import Panel from '@site/src/components/Panel';
   linked tables - and how to combine them.
 
 * In this article:
-  * [Root Tables](#root-tables)
-  * [Embedded Tables](#embedded-tables)
-  * [Linked Tables](#linked-tables)
-  * [Primary Key and Join Column Requirements](#primary-key-and-join-column-requirements)
-  * [Multi-Level Nesting](#multi-level-nesting)
-  * [Relation Types](#relation-types)
-  * [Choosing Between Embedded and Linked](#choosing-between-embedded-and-linked)
+  * [Root tables](#root-tables)
+  * [Embedded tables](#embedded-tables)
+  * [Linked tables](#linked-tables)
+  * [Primary key and join column requirements](#primary-key-and-join-column-requirements)
+  * [Multi-level nesting](#multi-level-nesting)
+  * [Relation types](#relation-types)
+  * [Choosing between embedded and linked](#choosing-between-embedded-and-linked)
 
 </Admonition>
 
-<Panel heading="Root Tables">
+<Panel heading="Root tables">
 
 A **root table** maps a source table to a RavenDB collection. Each row in the source table
 becomes one document.
@@ -66,7 +66,7 @@ still available in patch scripts via `$row` but are not stored in the document.
 
 </Panel>
 
-<Panel heading="Embedded Tables">
+<Panel heading="Embedded tables">
 
 An **embedded table** creates nested data within a parent document. For example, a
 `order_lines` table becomes an array inside each `Orders` document.
@@ -134,7 +134,7 @@ This produces documents like:
 
 </Panel>
 
-<Panel heading="Linked Tables">
+<Panel heading="Linked tables">
 
 A **linked table** creates a document ID reference rather than embedding data.
 A foreign key in the source row becomes a RavenDB document ID.
@@ -177,9 +177,9 @@ document ID reference such as `Customers/42` into the current document. The refe
 
 </Panel>
 
-<Panel heading="Primary Key and Join Column Requirements">
+<Panel heading="Primary key and join column requirements">
 
-### Root Tables
+### Root tables
 
 The `PrimaryKeyColumns` list defines which source columns are used to generate the document ID.
 All PK columns must be present in every INSERT, UPDATE, and DELETE event.
@@ -188,7 +188,7 @@ Every column listed in `PrimaryKeyColumns` must also appear in the `Columns` lis
 samples, `Columns` is the list of `CdcColumnMapping` entries, where `Column` is the source
 SQL column name and `Name` is the RavenDB document field name.
 
-### Embedded Tables (One Level)
+### Embedded tables (one level)
 
 An embedded table needs:
 
@@ -204,7 +204,7 @@ The `JoinColumns` must correspond 1:1 (same count and order) to the parent's `Pr
 | `[id]` | `[customer_id, order_id]` | ✗ Extra column not from parent PK |
 | `[id, year]` | `[order_id]` | ✗ Missing `order_year` |
 
-### DELETE Events and REPLICA IDENTITY (PostgreSQL)
+### DELETE events and REPLICA IDENTITY (PostgreSQL)
 
 For DELETE events, the source database must include the join column values so CDC Sink
 can route the delete to the correct parent document.
@@ -213,12 +213,12 @@ If the join column is not part of the source table's primary key, the source dat
 need additional configuration to include it in DELETE events. For PostgreSQL, this is
 controlled by REPLICA IDENTITY.
 
-See [REPLICA IDENTITY](../source-database-setup/postgres/replica-identity.mdx) for
+See [REPLICA IDENTITY](../../../../server/ongoing-tasks/cdc-sink/source-database-setup/postgres/replica-identity.mdx) for
 the PostgreSQL-specific requirement and how CDC Sink handles it automatically.
 
 </Panel>
 
-<Panel heading="Multi-Level Nesting">
+<Panel heading="Multi-level nesting">
 
 Embedded tables can themselves have embedded tables, creating arbitrarily deep hierarchies.
 
@@ -286,7 +286,7 @@ in a single pass, without additional lookups.
 **Source schema to support this:**
 
 <Tabs>
-<TabItem value="sql" label="sql">
+<TabItem value="sql" label="SQL">
 
 ```sql
 CREATE TABLE employees (
@@ -306,7 +306,7 @@ REPLICA IDENTITY configuration - the default DELETE events include all PK column
 
 </Panel>
 
-<Panel heading="Relation Types">
+<Panel heading="Relation types">
 
 When defining a CDC Sink task, you choose how related SQL tables are represented in RavenDB:
 embedded inside the parent document, or linked as references to separate documents.
@@ -340,7 +340,7 @@ The following table summarizes how embedded and linked tables compare:
 
 </Panel>
 
-<Panel heading="Choosing Between Embedded and Linked">
+<Panel heading="Choosing between embedded and linked">
 
 **Use embedded tables** when:
 * The child entity has no meaning outside the parent (order lines without an order)

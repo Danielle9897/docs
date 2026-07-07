@@ -19,8 +19,6 @@ import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 import Panel from '@site/src/components/Panel';
 
-# CDC Sink for PostgreSQL: REPLICA IDENTITY
-
 <Admonition type="note" title="">
 
 * **REPLICA IDENTITY** controls what column values PostgreSQL includes in DELETE
@@ -31,15 +29,15 @@ import Panel from '@site/src/components/Panel';
   cannot be routed correctly.
 
 * In this article:
-  * [Why REPLICA IDENTITY Matters](#why-replica-identity-matters)
-  * [REPLICA IDENTITY Options](#replica-identity-options)
-  * [When Is REPLICA IDENTITY Required?](#when-is-replica-identity-required)
-  * [Checking Current Setting](#checking-current-setting)
-  * [Automatic vs Manual Configuration](#automatic-vs-manual-configuration)
+  * [Why REPLICA IDENTITY matters](#why-replica-identity-matters)
+  * [REPLICA IDENTITY options](#replica-identity-options)
+  * [When is REPLICA IDENTITY required?](#when-is-replica-identity-required)
+  * [Checking current setting](#checking-current-setting)
+  * [Automatic vs manual configuration](#automatic-vs-manual-configuration)
 
 </Admonition>
 
-<Panel heading="Why REPLICA IDENTITY Matters">
+<Panel heading="Why REPLICA IDENTITY matters">
 
 When CDC Sink receives a DELETE event for an embedded table, it needs to:
 
@@ -62,7 +60,7 @@ the existing embedded item).
 
 </Panel>
 
-<Panel heading="REPLICA IDENTITY Options">
+<Panel heading="REPLICA IDENTITY options">
 
 PostgreSQL supports four REPLICA IDENTITY modes:
 
@@ -78,7 +76,7 @@ For CDC Sink, `FULL` is the simplest and most compatible choice.
 
 </Panel>
 
-<Panel heading="When Is REPLICA IDENTITY Required?">
+<Panel heading="When is REPLICA IDENTITY required?">
 
 | Scenario | REPLICA IDENTITY needed? |
 |----------|------------------------|
@@ -91,7 +89,7 @@ For CDC Sink, `FULL` is the simplest and most compatible choice.
 **Example where REPLICA IDENTITY is needed:**
 
 <Tabs>
-<TabItem value="sql" label="sql">
+<TabItem value="sql" label="SQL">
 
 ```sql
 -- order_lines has a surrogate PK (line_id), with order_id as foreign key
@@ -114,7 +112,7 @@ ALTER TABLE order_lines REPLICA IDENTITY FULL;
 **Example where REPLICA IDENTITY is NOT needed:**
 
 <Tabs>
-<TabItem value="sql" label="sql">
+<TabItem value="sql" label="SQL">
 
 ```sql
 -- If order_id is part of a composite PK, DEFAULT is sufficient
@@ -132,10 +130,10 @@ CREATE TABLE order_lines (
 
 </Panel>
 
-<Panel heading="Checking Current Setting">
+<Panel heading="Checking current setting">
 
 <Tabs>
-<TabItem value="sql" label="sql">
+<TabItem value="sql" label="SQL">
 
 ```sql
 SELECT c.relname, c.relreplident
@@ -160,7 +158,7 @@ The `relreplident` column:
 
 </Panel>
 
-<Panel heading="Automatic vs Manual Configuration">
+<Panel heading="Automatic vs manual configuration">
 
 If the CDC Sink user has sufficient permissions (table ownership or `SUPERUSER`),
 CDC Sink will automatically set `REPLICA IDENTITY FULL` on embedded tables that
@@ -168,6 +166,6 @@ require it.
 
 If the CDC Sink user does not have permission to alter tables, a database
 administrator must configure `REPLICA IDENTITY` before starting the task.
-See [Manual Setup](./replica-identity-manual-setup.mdx).
+See [Manual Setup](../../../../../server/ongoing-tasks/cdc-sink/source-database-setup/postgres/replica-identity-manual-setup.mdx).
 
 </Panel>

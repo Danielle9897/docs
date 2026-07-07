@@ -14,7 +14,7 @@ import Panel from '@site/src/components/Panel';
 
 </Admonition>
 
-<Panel heading="Connection String">
+<Panel heading="Connection string">
 
 Use a `SqlConnectionString` with `FactoryName` set to `"MySql.Data.MySqlClient"` or
 `"MySqlConnector.MySqlConnectorFactory"`:
@@ -59,7 +59,7 @@ server-id = 1
 The CDC Sink user needs the following privileges:
 
 <Tabs>
-<TabItem value="sql" label="sql">
+<TabItem value="sql" label="SQL">
 
 ```sql
 GRANT REPLICATION SLAVE, REPLICATION CLIENT ON *.* TO 'ravendb_cdc'@'%';
@@ -75,7 +75,7 @@ GRANT SELECT ON mydb.* TO 'ravendb_cdc'@'%';
 
 </Panel>
 
-<Panel heading="Streaming Behavior">
+<Panel heading="Streaming behavior">
 
 Like PostgreSQL, MySQL CDC Sink uses streaming replication (via the binlog), not
 polling. The `CdcSink.SqlServer.PollIntervalInSec` server configuration setting does not
@@ -86,7 +86,7 @@ apply to MySQL.
 <Panel heading="Configuration">
 
 The CDC Sink task configuration is the same across all database engines.
-See [Configuration Reference](../../../manage-cdc-sink-tasks/configuration-reference.mdx) for full details.
+See [Configuration Reference](../../../../../../server/ongoing-tasks/cdc-sink/manage-cdc-sink-tasks/configuration-reference.mdx) for full details.
 
 The `SourceTableSchema` corresponds to the MySQL database name.
 

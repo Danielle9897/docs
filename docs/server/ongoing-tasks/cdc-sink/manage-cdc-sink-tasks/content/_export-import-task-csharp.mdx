@@ -1,0 +1,110 @@
+import Admonition from '@theme/Admonition';
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import Panel from '@site/src/components/Panel';
+
+<Admonition type="note" title="">
+
+* CDC Sink task **configuration** is part of the database record, so it is included when you
+  export a database and recreated when you import that data into another database.
+
+* **Imported CDC Sink tasks are always created in a disabled state** and must be
+  re-enabled manually. Only the configuration is transferred - the task's runtime position
+  (the last consumed change / LSN, and for PostgreSQL the replication slot) is server-side
+  state and is **not** part of the export.
+
+* This article shows how CDC Sink tasks are handled during export/import, both with the
+  Client API (Smuggler) and in the Studio.
+
+* In this article:
+  * [Export / import via Client API](#export--import-via-client-api)
+  * [Export / import via Studio](#export--import-via-studio)
+  * [What is transferred](#what-is-transferred)
+
+</Admonition>
+
+<Panel heading="Export / import via Client API">
+
+CDC Sink tasks are carried in the **database record**. To include them, the smuggler
+options must operate on the `DatabaseRecord` item type, and the
+`OperateOnDatabaseRecordTypes` must include `CdcSinks` (both are part of the defaults).
+
+<Tabs>
+<TabItem value="csharp" label="csharp">
+
+```csharp
+// Export - the default options include the database record and CDC Sink tasks
+var exportOptions = new DatabaseSmugglerExportOptions();
+// exportOptions.OperateOnTypes includes DatabaseItemType.DatabaseRecord
+// exportOptions.OperateOnDatabaseRecordTypes includes DatabaseRecordItemType.CdcSinks
+
+var exportOp = await store.Smuggler.ExportAsync(exportOptions, "export.ravendbdump");
+await exportOp.WaitForCompletionAsync();
+
+// Import into another database
+var importOptions = new DatabaseSmugglerImportOptions();
+
+var importOp = await destinationStore.Smuggler.ImportAsync(importOptions, "export.ravendbdump");
+await importOp.WaitForCompletionAsync();
+```
+
+</TabItem>
+</Tabs>
+
+To exclude CDC Sink tasks from an export or import, clear the `CdcSinks` flag from
+`OperateOnDatabaseRecordTypes`:
+
+<Tabs>
+<TabItem value="csharp" label="csharp">
+
+```csharp
+importOptions.OperateOnDatabaseRecordTypes &= ~DatabaseRecordItemType.CdcSinks;
+```
+
+</TabItem>
+</Tabs>
+
+</Panel>
+
+<Panel heading="Export / import via Studio">
+
+* **Export:** Navigate to **Databases** → your database → **Tasks** → **Export Database**.
+  Ensure **Database Record** is included in the export selection, then export.
+* **Import:** Navigate to **Tasks** → **Import Data** → **From file (.ravendbdump)**,
+  choose the exported file, ensure **Database Record** is included, and import.
+
+{/* image: Export Database / Import Data screen with Database Record included */}
+
+After import, open **Ongoing Tasks**, find the imported CDC Sink task (it will be
+**disabled**), verify its connection string, and enable it when the source database is ready.
+
+</Panel>
+
+<Panel heading="What is transferred">
+
+| Item | Transferred on export/import? |
+|------|-------------------------------|
+| CDC Sink task configuration (tables, column mappings, patches) | Yes - part of the database record |
+| SQL connection string | Yes - part of the database record |
+| Task enabled/disabled state | No - imported tasks are always **disabled** |
+| Task ID | No - a new task ID is assigned on import |
+| Runtime position (last consumed change / LSN) | No - the task starts fresh (initial load, unless `SkipInitialLoad`) |
+| PostgreSQL replication slot / publication | No - these live in the source database and must already exist |
+
+<Admonition type="warning" title="">
+If a task with the same **name** already exists in the target database, the import
+replaces it: the existing task is deleted and the imported configuration is added as a new,
+disabled task.
+</Admonition>
+
+<Admonition type="warning" title="PostgreSQL: shared replication slot">
+The imported task carries the **same** `SlotName` and `PublicationName` as the origin. A
+PostgreSQL replication slot allows only **one active consumer**, so before you enable the
+imported task, either disable the task on the origin database or give the imported copy its
+own slot and publication (set a distinct `SlotName`/`PublicationName` in
+`CdcSinkPostgresSettings` before enabling). Otherwise the second task cannot attach to the
+slot and drops into fallback mode. See
+[One Active Consumer per Slot](../../../../../server/ongoing-tasks/cdc-sink/source-database-setup/postgres/initial-setup.mdx#one-active-consumer-per-slot).
+</Admonition>
+
+</Panel>

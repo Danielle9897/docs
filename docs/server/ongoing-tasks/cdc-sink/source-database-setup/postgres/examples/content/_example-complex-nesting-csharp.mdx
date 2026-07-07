@@ -10,17 +10,17 @@ import Panel from '@site/src/components/Panel';
   a category reference.
 
 * In this article:
-  * [Source Schema](#source-schema)
-  * [REPLICA IDENTITY Setup](#replica-identity-setup)
-  * [Task Configuration](#task-configuration)
-  * [Resulting Documents](#resulting-documents)
+  * [Source schema](#source-schema)
+  * [REPLICA IDENTITY setup](#replica-identity-setup)
+  * [Task configuration](#task-configuration)
+  * [Resulting documents](#resulting-documents)
 
 </Admonition>
 
-<Panel heading="Source Schema">
+<Panel heading="Source schema">
 
 <Tabs>
-<TabItem value="sql" label="sql">
+<TabItem value="sql" label="SQL">
 
 ```sql
 CREATE TABLE categories (
@@ -56,7 +56,7 @@ CREATE TABLE variant_attributes (
 
 </Panel>
 
-<Panel heading="REPLICA IDENTITY Setup">
+<Panel heading="REPLICA IDENTITY setup">
 
 Both `product_variants` and `variant_attributes` have surrogate PKs with join
 columns that are not part of their primary keys. Rather than `REPLICA IDENTITY FULL`
@@ -64,7 +64,7 @@ columns that are not part of their primary keys. Rather than `REPLICA IDENTITY F
 and PK columns:
 
 <Tabs>
-<TabItem value="sql" label="sql">
+<TabItem value="sql" label="SQL">
 
 ```sql
 -- product_variants: join column is product_id, PK is variant_id
@@ -83,11 +83,11 @@ ALTER TABLE variant_attributes
 </TabItem>
 </Tabs>
 
-See [REPLICA IDENTITY](../../replica-identity.mdx) for more details.
+See [REPLICA IDENTITY](../../../../../../../server/ongoing-tasks/cdc-sink/source-database-setup/postgres/replica-identity.mdx) for more details.
 
 </Panel>
 
-<Panel heading="Task Configuration">
+<Panel heading="Task configuration">
 
 Multi-level nesting follows three rules:
 
@@ -178,7 +178,7 @@ await store.Maintenance.SendAsync(new AddCdcSinkOperation(config));
 
 </Panel>
 
-<Panel heading="Resulting Documents">
+<Panel heading="Resulting documents">
 
 SQL rows:
 

@@ -1,0 +1,116 @@
+import Admonition from '@theme/Admonition';
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import Panel from '@site/src/components/Panel';
+
+<Admonition type="note" title="">
+
+* Update an existing CDC Sink task to change its column mappings, add or remove tables,
+  adjust patches, or modify any other configuration property.
+
+* This article shows how to **update** a CDC Sink task, both with the Client API and in the Studio.
+
+* In this article:
+  * [Update via Client API](#update-via-client-api)
+  * [Update via Studio](#update-via-studio)
+  * [Update via REST API](#update-via-rest-api)
+
+</Admonition>
+
+<Panel heading="Update via Client API">
+
+Use `UpdateCdcSinkOperation` to modify an existing task.
+Pass the **full updated configuration** including the `TaskId` of the task being updated.
+
+<Tabs>
+<TabItem value="csharp" label="csharp">
+
+```csharp
+config.TaskId = taskId;        // Must be set
+
+config.Tables.Add(new CdcSinkTableConfig
+{
+    CollectionName = "Customers",
+    SourceTableName = "customers",
+    PrimaryKeyColumns = new List<string> { "id" },
+    Columns =
+    [
+        new CdcColumnMapping() { Column = "id",    Name = "Id" },
+        new CdcColumnMapping() { Column = "name",  Name = "Name" },
+        new CdcColumnMapping() { Column = "email", Name = "Email" },
+    ]
+});
+
+await store.Maintenance.SendAsync(
+    new UpdateCdcSinkOperation(taskId, config));
+```
+
+</TabItem>
+</Tabs>
+
+<Admonition type="warning" title="">
+**PostgreSQL - table changes affect the publication:**
+
+The replication slot and publication names are fixed at task creation and do not
+change when you update the task. However, the **publication** controls which tables
+CDC Sink receives changes for, so table changes require database-level updates:
+
+* **Adding tables** - If CDC Sink has the necessary permissions, it will automatically
+  run `ALTER PUBLICATION <name> ADD TABLE <new_table>;` when the task is updated. If it
+  does not have permissions, a database administrator must run this manually.
+* **Removing tables** - `ALTER PUBLICATION <name> DROP TABLE <removed_table>;` must be
+  run manually by a database administrator. CDC Sink does not remove tables from the
+  publication automatically.
+
+If the slot and publication were auto-named, a database administrator can look up
+the current names from the task error log or from PostgreSQL:
+
+```sql
+SELECT slot_name FROM pg_replication_slots WHERE slot_name LIKE 'rvn_cdc_s_%';
+SELECT pubname FROM pg_publication WHERE pubname LIKE 'rvn_cdc_p_%';
+```
+
+See [Initial Setup](../../../../../server/ongoing-tasks/cdc-sink/source-database-setup/postgres/initial-setup.mdx) for
+guidance on slot and publication management.
+
+Dropped or orphaned slots and publications must be cleaned up manually by the
+database administrator.
+See [Cleanup and Maintenance](../../../../../server/ongoing-tasks/cdc-sink/source-database-setup/postgres/cleanup-and-maintenance.mdx).
+</Admonition>
+
+</Panel>
+
+<Panel heading="Update via Studio">
+
+To edit a CDC Sink task in the Studio:
+
+1. Navigate to **Databases** → your database → **Tasks** → **Ongoing Tasks**.
+2. Click the task's name in the list to open the same configuration form used for creation,
+   now in edit mode.
+
+{/* image: Ongoing Tasks list - clicking a CDC Sink task opens it in edit mode */}
+
+3. Modify the connection string, tables, column mappings, or patches as needed. Use the
+   **Schema Explorer** to discover and add new tables, or the **Configured Tables** panel to
+   adjust or remove existing mappings.
+4. Click **Save**.
+
+<Admonition type="warning" title="">
+The replication slot and publication names are **fixed at task creation** and do not
+change when you edit the task, regardless of whether the names were auto-generated or set
+explicitly. When you add or remove tables, keep the PostgreSQL publication in sync as
+described above.
+</Admonition>
+
+</Panel>
+
+<Panel heading="Update via REST API">
+
+Update uses the **same endpoint as create**. Supplying the `id` query-string parameter
+updates the existing task; the request body is the full JSON `CdcSinkConfiguration`.
+
+| Method | Endpoint | Auth |
+|--------|----------|------|
+| `PUT` | `/databases/{databaseName}/admin/cdc-sink?id={taskId}` | `DatabaseAdmin` |
+
+</Panel>

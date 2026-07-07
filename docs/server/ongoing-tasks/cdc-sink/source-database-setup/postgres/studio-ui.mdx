@@ -31,21 +31,19 @@ import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 import Panel from '@site/src/components/Panel';
 
-# CDC Sink for PostgreSQL: Studio UI
-
 <Admonition type="note" title="">
 
 * CDC Sink tasks are created and managed through the **Ongoing Tasks** section of the
   Management Studio.
 
 * In this article:
-  * [Creating a CDC Sink Task](#creating-a-cdc-sink-task)
-  * [Monitoring Task State](#monitoring-task-state)
-  * [Editing a Task](#editing-a-task)
+  * [Creating a CDC Sink task](#creating-a-cdc-sink-task)
+  * [Monitoring task state](#monitoring-task-state)
+  * [Editing a task](#editing-a-task)
 
 </Admonition>
 
-<Panel heading="Creating a CDC Sink Task">
+<Panel heading="Creating a CDC Sink task">
 
 To create a CDC Sink task in the Studio:
 
@@ -59,7 +57,7 @@ To create a CDC Sink task in the Studio:
 
 </Panel>
 
-<Panel heading="Monitoring Task State">
+<Panel heading="Monitoring task state">
 
 The task list shows:
 
@@ -74,7 +72,7 @@ Clicking on a task opens the detail view with per-table statistics.
 
 </Panel>
 
-<Panel heading="Editing a Task">
+<Panel heading="Editing a task">
 
 To edit a task, click its name in the Ongoing Tasks list. The same configuration
 form used for creation opens in edit mode.
@@ -96,7 +94,10 @@ be kept in sync with the task configuration:
   publication automatically.
 
 Orphaned slots and publications must be dropped manually by the database administrator.
-See [Cleanup and Maintenance](./cleanup-and-maintenance.mdx).
+See [Cleanup and Maintenance](../../../../../server/ongoing-tasks/cdc-sink/source-database-setup/postgres/cleanup-and-maintenance.mdx).
 </Admonition>
 
 </Panel>
+
+
+// TODO SHOW THE @cdc-states collection .... !!!

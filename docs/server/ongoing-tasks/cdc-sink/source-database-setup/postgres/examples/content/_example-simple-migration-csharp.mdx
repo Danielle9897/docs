@@ -9,18 +9,18 @@ import Panel from '@site/src/components/Panel';
   RavenDB collection.
 
 * In this article:
-  * [Source Schema](#source-schema)
-  * [Task Configuration](#task-configuration)
-  * [Resulting Documents](#resulting-documents)
+  * [Source schema](#source-schema)
+  * [Task configuration](#task-configuration)
+  * [Resulting documents](#resulting-documents)
 
 </Admonition>
 
-<Panel heading="Source Schema">
+<Panel heading="Source schema">
 
 A simple customers table:
 
 <Tabs>
-<TabItem value="sql" label="sql">
+<TabItem value="sql" label="SQL">
 
 ```sql
 CREATE TABLE customers (
@@ -36,7 +36,7 @@ CREATE TABLE customers (
 
 </Panel>
 
-<Panel heading="Task Configuration">
+<Panel heading="Task configuration">
 
 <Tabs>
 <TabItem value="csharp" label="csharp">
@@ -73,7 +73,7 @@ await store.Maintenance.SendAsync(new AddCdcSinkOperation(config));
 
 </Panel>
 
-<Panel heading="Resulting Documents">
+<Panel heading="Resulting documents">
 
 SQL row:
 

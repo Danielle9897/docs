@@ -9,20 +9,20 @@ import Panel from '@site/src/components/Panel';
   on a RavenDB document as individual event rows arrive from PostgreSQL.
 
 * In this article:
-  * [Source Schema](#source-schema)
+  * [Source schema](#source-schema)
   * [Goal](#goal)
-  * [Task Configuration](#task-configuration)
-  * [Resulting Documents](#resulting-documents)
-  * [Handling Deletes](#handling-deletes)
+  * [Task configuration](#task-configuration)
+  * [Resulting documents](#resulting-documents)
+  * [Handling deletes](#handling-deletes)
 
 </Admonition>
 
-<Panel heading="Source Schema">
+<Panel heading="Source schema">
 
 An accounts table and a transactions table:
 
 <Tabs>
-<TabItem value="sql" label="sql">
+<TabItem value="sql" label="SQL">
 
 ```sql
 CREATE TABLE accounts (
@@ -53,7 +53,7 @@ history, and `Balance` is maintained using patch logic.
 
 </Panel>
 
-<Panel heading="Task Configuration">
+<Panel heading="Task configuration">
 
 <Tabs>
 <TabItem value="csharp" label="csharp">
@@ -124,7 +124,7 @@ await store.Maintenance.SendAsync(new AddCdcSinkOperation(config));
 
 </Panel>
 
-<Panel heading="Resulting Documents">
+<Panel heading="Resulting documents">
 
 After three transactions (credit 100, debit 30, credit 50):
 
@@ -151,7 +151,7 @@ After three transactions (credit 100, debit 30, credit 50):
 
 </Panel>
 
-<Panel heading="Handling Deletes">
+<Panel heading="Handling deletes">
 
 The `OnDelete.Patch` reverses the contribution of the deleted transaction to
 `Balance`. This uses `$old` (the embedded item's last known state) rather than
@@ -165,7 +165,7 @@ keeps `Balance` consistent.
 The patch uses delta logic (`$old` → `$row`) for idempotency. If a change is
 re-applied after a failover, `$old` still reflects the state before the original
 update, so the delta produces the same result.
-See [Failover and Consistency](../../../../failover-and-consistency.mdx).
+See [Failover and Consistency](../../../../../../../server/ongoing-tasks/cdc-sink/failover-and-consistency.mdx).
 </Admonition>
 
 </Panel>

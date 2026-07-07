@@ -10,16 +10,16 @@ import Panel from '@site/src/components/Panel';
   of `CdcColumnMapping` objects (not a dictionary).
 
 * In this article:
-  * [Mapping Columns to Properties](#mapping-columns-to-properties)
-  * [Column Types](#column-types)
-  * [Unmapped Columns](#unmapped-columns)
-  * [JSON Columns](#json-columns)
-  * [Validation Rules](#validation-rules)
-  * [Schema (Source Table Schema)](#schema-source-table-schema)
+  * [Mapping columns to properties](#mapping-columns-to-properties)
+  * [Column types](#column-types)
+  * [Unmapped columns](#unmapped-columns)
+  * [JSON columns](#json-columns)
+  * [Validation rules](#validation-rules)
+  * [Schema (source table schema)](#schema-source-table-schema)
 
 </Admonition>
 
-<Panel heading="Mapping Columns to Properties">
+<Panel heading="Mapping columns to properties">
 
 `Columns` is a `List<CdcColumnMapping>` where each entry maps a SQL column
 to a RavenDB document property:
@@ -52,7 +52,7 @@ the PK's raw source-row value.
 
 </Panel>
 
-<Panel heading="Column Types">
+<Panel heading="Column types">
 
 Each `CdcColumnMapping` entry has an optional `Type` property of type `CdcColumnType`
 that controls how the SQL value is stored in RavenDB:
@@ -99,7 +99,7 @@ Type conversions are source-database-specific. For PostgreSQL:
 * SQL arrays → JSON arrays
 * `vector` (pgvector) → `float[]`
 
-See [Patching: $row Column Types](../patching.mdx#row-column-types) for the full reference table.
+See [Patching: $row Column Types](../../../../server/ongoing-tasks/cdc-sink/patching.mdx#row-column-types) for the full reference table.
 
 **`CdcColumnType.Json`** - Parses the string value as a native JSON value (object, array,
 string, number, boolean, etc.) in the document. Use for PostgreSQL `json`/`jsonb` or
@@ -111,7 +111,7 @@ SQL Server `nvarchar(max)` with JSON content.
 
 </Panel>
 
-<Panel heading="Unmapped Columns">
+<Panel heading="Unmapped columns">
 
 Columns not listed in `Columns` are **not stored** in the document, but they
 are available in patch scripts via `$row`.
@@ -149,12 +149,12 @@ in patch scripts via `$row.base_price` (for the current row's values).
 patches, the previous document; for embedded-table patches, the previous embedded item.
 It uses mapped property names (`Name` values), not SQL column names. Unmapped columns
 do not appear in `$old`.
-See [Patching: $row and $old](../patching.mdx#row-and-old-names-and-types) for details.
+See [Patching: $row and $old](../../../../server/ongoing-tasks/cdc-sink/patching.mdx#row-and-old-names-and-types) for details.
 </Admonition>
 
 </Panel>
 
-<Panel heading="JSON Columns">
+<Panel heading="JSON columns">
 
 SQL columns that contain JSON data (e.g., PostgreSQL `jsonb`, MySQL `json`, SQL Server
 `nvarchar` with JSON content) can be parsed into native JSON values using
@@ -209,7 +209,7 @@ Columns =
 
 </Panel>
 
-<Panel heading="Validation Rules">
+<Panel heading="Validation rules">
 
 The following rules apply to both root table and embedded table column mappings:
 
@@ -225,7 +225,7 @@ The following rules apply to both root table and embedded table column mappings:
 
 </Panel>
 
-<Panel heading="Schema (Source Table Schema)">
+<Panel heading="Schema (source table schema)">
 
 `SourceTableSchema` specifies the SQL schema containing the table. If omitted, CDC Sink
 uses the provider default: `public` for PostgreSQL, `dbo` for SQL Server, and the database

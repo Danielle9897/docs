@@ -23,8 +23,6 @@ import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 import Panel from '@site/src/components/Panel';
 
-# CDC Sink for PostgreSQL: WAL Configuration
-
 <Admonition type="note" title="">
 
 * CDC Sink uses PostgreSQL **logical replication**, which requires the Write-Ahead Log
@@ -33,18 +31,18 @@ import Panel from '@site/src/components/Panel';
 * This page explains how to verify the current setting and change it if needed.
 
 * In this article:
-  * [Check Current WAL Level](#check-current-wal-level)
-  * [Enable Logical Replication](#enable-logical-replication)
-  * [Other Required Settings](#other-required-settings)
+  * [Check current WAL level](#check-current-wal-level)
+  * [Enable logical replication](#enable-logical-replication)
+  * [Other required settings](#other-required-settings)
 
 </Admonition>
 
-<Panel heading="Check Current WAL Level">
+<Panel heading="Check current WAL level">
 
 Connect to your PostgreSQL instance and run:
 
 <Tabs>
-<TabItem value="sql" label="sql">
+<TabItem value="sql" label="SQL">
 
 ```sql
 SHOW wal_level;
@@ -60,7 +58,7 @@ must be configured before CDC Sink can run.
 
 </Panel>
 
-<Panel heading="Enable Logical Replication">
+<Panel heading="Enable logical replication">
 
 Edit `postgresql.conf` and set the following:
 
@@ -79,7 +77,7 @@ This change requires a **PostgreSQL restart**.
 After restarting, verify the change took effect:
 
 <Tabs>
-<TabItem value="sql" label="sql">
+<TabItem value="sql" label="SQL">
 
 ```sql
 SHOW wal_level;
@@ -96,7 +94,7 @@ Plan for a brief maintenance window.
 
 </Panel>
 
-<Panel heading="Other Required Settings">
+<Panel heading="Other required settings">
 
 CDC Sink uses one replication slot per task. Ensure the following settings are
 sufficient for the number of CDC Sink tasks you plan to run:
@@ -119,7 +117,7 @@ concurrent CDC Sink tasks or other replication consumers.
 Check current values:
 
 <Tabs>
-<TabItem value="sql" label="sql">
+<TabItem value="sql" label="SQL">
 
 ```sql
 SHOW max_replication_slots;

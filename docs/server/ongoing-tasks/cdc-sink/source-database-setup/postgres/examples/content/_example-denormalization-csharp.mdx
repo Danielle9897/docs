@@ -9,18 +9,18 @@ import Panel from '@site/src/components/Panel';
   into denormalized RavenDB documents with embedded arrays.
 
 * In this article:
-  * [Source Schema](#source-schema)
-  * [REPLICA IDENTITY Setup](#replica-identity-setup)
-  * [Task Configuration](#task-configuration)
-  * [Resulting Documents](#resulting-documents)
-  * [What Happens on Change Events](#what-happens-on-change-events)
+  * [Source schema](#source-schema)
+  * [REPLICA IDENTITY setup](#replica-identity-setup)
+  * [Task configuration](#task-configuration)
+  * [Resulting documents](#resulting-documents)
+  * [What happens on change events](#what-happens-on-change-events)
 
 </Admonition>
 
-<Panel heading="Source Schema">
+<Panel heading="Source schema">
 
 <Tabs>
-<TabItem value="sql" label="sql">
+<TabItem value="sql" label="SQL">
 
 ```sql
 CREATE TABLE orders (
@@ -44,7 +44,7 @@ CREATE TABLE order_lines (
 
 </Panel>
 
-<Panel heading="REPLICA IDENTITY Setup">
+<Panel heading="REPLICA IDENTITY setup">
 
 `order_lines` has a surrogate PK (`line_id`). The join column `order_id` is not
 part of the primary key. Without `REPLICA IDENTITY FULL`, DELETE events for
@@ -52,7 +52,7 @@ part of the primary key. Without `REPLICA IDENTITY FULL`, DELETE events for
 the parent document.
 
 <Tabs>
-<TabItem value="sql" label="sql">
+<TabItem value="sql" label="SQL">
 
 ```sql
 ALTER TABLE order_lines REPLICA IDENTITY FULL;
@@ -61,11 +61,11 @@ ALTER TABLE order_lines REPLICA IDENTITY FULL;
 </TabItem>
 </Tabs>
 
-See [REPLICA IDENTITY](../../replica-identity.mdx).
+See [REPLICA IDENTITY](../../../../../../../server/ongoing-tasks/cdc-sink/source-database-setup/postgres/replica-identity.mdx).
 
 </Panel>
 
-<Panel heading="Task Configuration">
+<Panel heading="Task configuration">
 
 <Tabs>
 <TabItem value="csharp" label="csharp">
@@ -119,7 +119,7 @@ await store.Maintenance.SendAsync(new AddCdcSinkOperation(config));
 
 </Panel>
 
-<Panel heading="Resulting Documents">
+<Panel heading="Resulting documents">
 
 SQL rows:
 
@@ -169,7 +169,7 @@ RavenDB document `Orders/1`:
 
 </Panel>
 
-<Panel heading="What Happens on Change Events">
+<Panel heading="What happens on change events">
 
 **INSERT into `order_lines`:**
 A new item is appended to the `Lines` array.

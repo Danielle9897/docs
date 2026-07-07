@@ -23,8 +23,6 @@ import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 import Panel from '@site/src/components/Panel';
 
-# CDC Sink: Property Retention
-
 <Admonition type="note" title="">
 
 * When CDC Sink applies an UPDATE to an existing RavenDB document, it **merges**
@@ -34,14 +32,14 @@ import Panel from '@site/src/components/Panel';
   This allows RavenDB-side data to coexist safely with CDC-managed properties.
 
 * In this article:
-  * [How Merging Works](#how-merging-works)
-  * [What Is and Is Not Preserved](#what-is-and-is-not-preserved)
-  * [Editing Documents Directly in RavenDB](#editing-documents-directly-in-ravendb)
-  * [Implications for Patches](#implications-for-patches)
+  * [How merging works](#how-merging-works)
+  * [What is and is not preserved](#what-is-and-is-not-preserved)
+  * [Editing documents directly in RavenDB](#editing-documents-directly-in-ravendb)
+  * [Implications for patches](#implications-for-patches)
 
 </Admonition>
 
-<Panel heading="How Merging Works">
+<Panel heading="How merging works">
 
 When a CDC UPDATE arrives for a document that already exists:
 
@@ -94,7 +92,7 @@ Document after CDC UPDATE:
 
 </Panel>
 
-<Panel heading="What Is and Is Not Preserved">
+<Panel heading="What is and is not preserved">
 
 **Preserved across CDC updates:**
 
@@ -114,7 +112,7 @@ for that row will overwrite your edit with the SQL value.
 
 </Panel>
 
-<Panel heading="Editing Documents Directly in RavenDB">
+<Panel heading="Editing documents directly in RavenDB">
 
 You can safely add properties to CDC-managed documents:
 
@@ -145,7 +143,7 @@ RavenDB-only property for your annotation and leaving the SQL-mapped property as
 
 </Panel>
 
-<Panel heading="Implications for Patches">
+<Panel heading="Implications for patches">
 
 Patches run after column mapping and can set additional properties that are not
 from the `Columns` list. These patch-computed properties follow the same merge rules:
@@ -157,6 +155,6 @@ from the `Columns` list. These patch-computed properties follow the same merge r
 
 For aggregates maintained via patches (e.g., `RunningTotal`), the patch itself
 is responsible for keeping the value correct across INSERT, UPDATE, and DELETE events.
-See [Patching](./patching.mdx).
+See [Patching](../../../server/ongoing-tasks/cdc-sink/patching.mdx).
 
 </Panel>

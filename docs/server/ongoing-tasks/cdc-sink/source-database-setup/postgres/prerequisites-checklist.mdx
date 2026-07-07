@@ -27,22 +27,20 @@ import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 import Panel from '@site/src/components/Panel';
 
-# CDC Sink for PostgreSQL: Prerequisites Checklist
-
 <Admonition type="note" title="">
 
 * Before creating a CDC Sink task for PostgreSQL, verify that each of these requirements
   is in place.
 
 * In this article:
-  * [Source Database Requirements](#source-database-requirements)
-  * [User Permissions](#user-permissions)
-  * [Table Requirements](#table-requirements)
-  * [Network Access](#network-access)
+  * [Source database requirements](#source-database-requirements)
+  * [User permissions](#user-permissions)
+  * [Table requirements](#table-requirements)
+  * [Network access](#network-access)
 
 </Admonition>
 
-<Panel heading="Source Database Requirements">
+<Panel heading="Source database requirements">
 
 * **PostgreSQL version**: 10 or later (logical replication introduced in version 10)
 
@@ -51,7 +49,7 @@ import Panel from '@site/src/components/Panel';
   Verify with:
 
 <Tabs>
-<TabItem value="sql" label="sql">
+<TabItem value="sql" label="SQL">
 
 ```sql
 SHOW wal_level;
@@ -60,14 +58,14 @@ SHOW wal_level;
 </TabItem>
 </Tabs>
 
-  If the result is not `logical`, see [WAL Configuration](./wal-configuration.mdx).
+  If the result is not `logical`, see [WAL Configuration](../../../../../server/ongoing-tasks/cdc-sink/source-database-setup/postgres/wal-configuration.mdx).
 
 * **`max_replication_slots`**: Must be at least 1 (one slot per CDC Sink task)
 
   Verify with:
 
 <Tabs>
-<TabItem value="sql" label="sql">
+<TabItem value="sql" label="SQL">
 
 ```sql
 SHOW max_replication_slots;
@@ -81,7 +79,7 @@ SHOW max_replication_slots;
   Verify with:
 
 <Tabs>
-<TabItem value="sql" label="sql">
+<TabItem value="sql" label="SQL">
 
 ```sql
 SHOW max_wal_senders;
@@ -92,14 +90,14 @@ SHOW max_wal_senders;
 
 </Panel>
 
-<Panel heading="User Permissions">
+<Panel heading="User permissions">
 
 The database user in the connection string must have sufficient permissions.
 
 **Minimum required permissions:**
 
 <Tabs>
-<TabItem value="sql" label="sql">
+<TabItem value="sql" label="SQL">
 
 ```sql
 -- Replication privilege (required for logical replication)
@@ -122,17 +120,17 @@ To let CDC Sink create and drop its own replication slot and publication, the us
 * **Create/drop publications:** ownership of the tables being published, or `SUPERUSER`.
   Alternatively, `CREATE` on the database.
 
-See [Permissions and Roles](./permissions-and-roles.mdx) for the exact grants.
+See [Permissions and Roles](../../../../../server/ongoing-tasks/cdc-sink/source-database-setup/postgres/permissions-and-roles.mdx) for the exact grants.
 
 If the CDC Sink user does not have permission to create publications and replication
 slots, a database administrator must set them up manually.
-See [Initial Setup](./initial-setup.mdx).
+See [Initial Setup](../../../../../server/ongoing-tasks/cdc-sink/source-database-setup/postgres/initial-setup.mdx).
 
-Full details: [Permissions and Roles](./permissions-and-roles.mdx).
+Full details: [Permissions and Roles](../../../../../server/ongoing-tasks/cdc-sink/source-database-setup/postgres/permissions-and-roles.mdx).
 
 </Panel>
 
-<Panel heading="Table Requirements">
+<Panel heading="Table requirements">
 
 * **Primary key**: Each root table and each embedded table must have a primary key
   (or a unique index used as a replica identity).
@@ -144,14 +142,14 @@ Full details: [Permissions and Roles](./permissions-and-roles.mdx).
   Alternatively, set `OnDelete.IgnoreDeletes = true` on the embedded table to skip
   delete processing entirely - then no `REPLICA IDENTITY` change is required.
 
-  See [REPLICA IDENTITY](./replica-identity.mdx).
+  See [REPLICA IDENTITY](../../../../../server/ongoing-tasks/cdc-sink/source-database-setup/postgres/replica-identity.mdx).
 
 * **Published columns**: All columns referenced in `PrimaryKeyColumns`, `JoinColumns`,
   and `Columns` entries must exist in the SQL table.
 
 </Panel>
 
-<Panel heading="Network Access">
+<Panel heading="Network access">
 
 * The RavenDB server must be able to open a TCP connection to the PostgreSQL host
   on the configured port (default: 5432).
