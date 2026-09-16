@@ -1,0 +1,290 @@
+---
+title: "App: Analytics View"
+sidebar_label: Analytics View
+sidebar_position: 6
+description: "View an app's conversation activity and token usage over a selected period, broken down by capability, model, and channel."
+---
+
+import Admonition from "@theme/Admonition";
+import Panel from "@site/src/components/Panel";
+import ContentFrame from "@site/src/components/ContentFrame";
+
+<Admonition type="note" title="">
+
+* The **Analytics** page reports an app's conversation activity and token usage for a selected period,  
+  broken down by capability, model, and channel.
+
+* Select an app from the [My apps](../my-apps.mdx) view.  
+  You can also use the app selector in the header to switch between apps.
+
+* On this page, **capability** refers to an [agent](./app-overview.mdx#agents).
+
+* In this article:
+   * [The analytics page](#the-analytics-page)
+   * [Select the period](#select-the-period)
+   * [Activity](#activity)
+   * [Tokens by capability](#tokens-by-capability)
+   * [Tokens by model](#tokens-by-model)
+   * [Conversations by channel](#conversations-by-channel)
+   * [Top capabilities](#top-capabilities)
+   * [Empty and error states](#empty-and-error-states)
+
+</Admonition>
+
+<Panel heading="The analytics page">
+
+{/* ![Analytics](./assets/app-analytics-1.png) */}
+    
+1. **Analytics**  
+   To open the selected app's **Analytics** page, click **Analytics** under **Settings** in the sidebar.
+
+2. **Period selector**  
+   Select the period reported throughout the page.  
+   The selection applies to both Activity tiles, the three breakdown charts, and the **Top capabilities** table.  
+   Learn more in [Select the period](#select-the-period).
+
+3. **Activity**  
+   Shows the app's conversation and token totals for the selected period,  
+   including their percentage change from the previous calendar period.  
+   Learn more in [Activity](#activity).
+
+4. **Tokens by capability**  
+   Shows token usage over time, grouped by capability.  
+   Learn more in [Tokens by capability](#tokens-by-capability).
+
+5. **Tokens by model**  
+   Shows token usage over time, grouped by LLM model.  
+   Learn more in [Tokens by model](#tokens-by-model).
+
+6. **Conversations by channel**  
+   Shows conversations started over time, grouped by channel.  
+   Learn more in [Conversations by channel](#conversations-by-channel).
+
+7. **Top capabilities**  
+   Ranks capabilities by total token usage and shows their invocations, average tokens, and total tokens.  
+   Learn more in [Top capabilities](#top-capabilities).
+
+</Panel>
+
+<Panel heading="Select the period">
+
+<ContentFrame>
+
+### The period selector
+
+* Select **Year**, **Month**, or **Day** to set the chart granularity:
+   * **Year** - monthly buckets.
+   * **Month** - daily buckets.
+   * **Day** - hourly buckets.
+* Use the arrows to move between periods, or click the period label to select a specific year, month, or day.
+* The initial selection is the current month.
+* The app's creation date determines the earliest selectable day, month, and year.  
+  If the app has no usable creation date, Quill uses the deployment's setup date instead.
+* Future periods are unavailable, and future buckets are not shown.
+* This selection is independent of the periods selected on **My apps**, **Usage**, and the app's **Overview** page.  
+  It is not retained when you leave the page.
+
+</ContentFrame>
+
+<ContentFrame>
+
+### Buckets and their labels
+
+The selected granularity determines how the period is divided into buckets  
+and how those buckets are labeled on the three breakdown charts:
+
+| Granularity | Buckets                 | Example label        |
+|-------------|-------------------------|----------------------|
+| **Year**    | Months of that year     | `2026-09`            |
+| **Month**   | Days of that month      | `2026-09-04`         |
+| **Day**     | Hours of that day       | `2026-09-15T14:00`   |
+
+* Buckets and their labels are based on UTC.
+* Hover over a column to see its exact bucket and the value of each series.
+
+</ContentFrame>
+
+<ContentFrame>
+
+### Drill into a bucket
+
+Click a populated column in any of the three breakdown charts to narrow the selected period for the entire page:
+
+* From the **Year** view, click a column to select that month.
+* From the **Month** view, click a column to select that day.
+* The **Day** view shows hourly buckets, the finest granularity available, so its columns are not clickable.
+
+</ContentFrame>
+
+</Panel>
+
+<Panel heading="Activity">
+
+{/* ![Analytics - Activity](./assets/app-analytics-2.png) */}
+
+Each tile shows the app's total for the selected period.  
+When applicable, it also shows a trend badge and a chart that distributes the total across time buckets.
+
+1. **Conversations**  
+   The number of conversations started with this app's agents during the selected period.  
+   A conversation is a single chat thread between a user and an agent.
+
+2. **Tokens**  
+   The total number of input and output tokens reported by the LLM provider for those conversations.
+
+3. **Trend badge**  
+   The percentage change from the previous calendar period:  
+   the previous year, month, or day, depending on the selected period.  
+   The badge is green for an increase and red for a decrease.
+
+4. **Chart**  
+   Shows how the total is distributed across the period's time buckets.  
+   Hover over the chart to see a value.  
+   The chart is shown only when the selected period contains at least two buckets.
+
+<Admonition type="info" title="">
+
+#### Reading the trend badge
+
+* The badge is not shown when the change is **0** or when the previous period recorded no activity.  
+  The first period with activity therefore has no trend badge.
+
+* The current day, month, or year ends at the present moment, while the comparison covers the complete previous calendar period.  
+  The percentage can therefore compare a partial current period with a complete previous period.  
+  When an earlier period is available, select it to compare two complete periods.
+
+</Admonition>
+
+<Admonition type="info" title="">
+
+#### How activity is reported
+
+* A conversation and all its tokens are assigned to the UTC bucket in which the conversation started.  
+  For example, a conversation started at 23:50 UTC and continued past midnight is reported entirely on the first day.
+
+* If the app has no activity during the selected period, both tiles show **0**. This is not an error.
+
+* For the same selected period, these are the same **Conversations** and **Tokens** figures shown on the app's  
+  [Overview](./app-overview.mdx#activity) page.
+
+</Admonition>
+
+</Panel>
+
+<Panel heading="Tokens by capability">
+
+{/* ![Analytics - Tokens by capability](./assets/app-analytics-3.png) */}
+
+This stacked bar chart shows token usage in each time bucket, broken down by capability.
+
+* Each capability that handled at least one conversation during the selected period has its own series.  
+  Capabilities that handled no conversations are not included in the legend.
+
+* Each series is labeled with the agent's current name.  
+  If the agent no longer exists, its identifier is used instead.
+
+* Hover over a column to see each capability's token usage in that bucket.
+
+* In the **Year** or **Month** view, click a populated column to  
+  [drill into that bucket](#drill-into-a-bucket).
+
+* If no capability handled a conversation during the selected period, the section displays  
+  "_No data for this period._"
+
+</Panel>
+
+<Panel heading="Tokens by model">
+
+{/* ![Analytics - Tokens by model](./assets/app-analytics-4.png) */}
+
+This stacked bar chart shows the same token usage as [Tokens by capability](#tokens-by-capability),  
+grouped by the model currently configured for each capability.
+
+* Quill determines the model from the capability's current  
+  [AI connection string](../ai-connection-strings.mdx).
+
+* Capabilities currently configured to use the same model are combined into one series.
+
+* Because the chart uses the current configuration, changing a capability's connection string or model  
+  can change how its earlier token usage is grouped.
+
+* If Quill cannot resolve a capability's current model, its tokens are grouped under `unknown`.  
+  This can occur when the capability no longer exists, has no connection string, or its connection string has been removed.
+
+* If no capability handled a conversation during the selected period, the section displays  
+  "_No data for this period._"
+
+</Panel>
+
+<Panel heading="Conversations by channel">
+
+{/* ![Analytics - Conversations by channel](./assets/app-analytics-5.png) */}
+
+This stacked bar chart shows conversations started in each time bucket, grouped by channel.
+
+* Every [channel currently configured](./app-overview.mdx#channels) in the app has its own series,  
+  including channels that carried no conversations during the selected period.
+
+* Each series is labeled with the channel's current name.  
+  If the channel has no name, its identifier is used instead.
+
+* Each conversation is assigned to the time bucket in which it started.
+
+<Admonition type="caution" title="">
+
+#### Why the chart total can be lower
+
+The chart includes a conversation only if it was served through a channel that still exists. It excludes:
+
+* Conversations served through a channel that has since been deleted.
+* Conversations that were not served through a channel.
+
+These conversations are still counted by the **Conversations** Activity tile and by **Top capabilities**.  
+The chart can therefore total less than the app's conversation total for the selected period.
+
+If the app has no channels, this section displays "_No data for this period._",  
+even when other sections report conversation activity.
+
+</Admonition>
+
+</Panel>
+
+<Panel heading="Top capabilities">
+
+{/* ![Analytics - Top capabilities](./assets/app-analytics-6.png) */}
+
+The table lists capabilities that handled at least one conversation during the selected period.  
+They are ordered by **Total tokens**, from highest to lowest. Capabilities with the same total are listed alphabetically.
+
+| Column           | What it shows                                                                                   |
+|------------------|-------------------------------------------------------------------------------------------------|
+| **Capability**   | The agent's current name, or its identifier if the agent no longer exists.                      |
+| **Invocations**  | The number of conversations started with the capability. Individual messages are not counted.  |
+| **Avg tokens**   | **Total tokens** divided by **Invocations**, truncated to a whole number.                        |
+| **Total tokens** | The total number of tokens reported by the LLM provider for those conversations.                |
+
+Large numbers are abbreviated, for example `1.4K`.  
+Because displayed values are rounded, calculating **Avg tokens** from the displayed values can produce a different result.
+
+If no capability handled a conversation during the selected period, the table displays  
+"_No capability usage yet._"
+
+</Panel>
+
+<Panel heading="Empty and error states">
+
+| Situation                                      | What the page shows |
+|------------------------------------------------|---------------------|
+| The analytics data cannot be loaded            | **Could not load analytics**, with **Retry**. The Activity tiles, breakdown charts, and table are not shown. |
+| The app does not exist                         | **App not found**, with **Go to dashboard**. |
+| The app cannot be loaded                       | **Could not load app**, with **Retry** and **Go to dashboard**. |
+| No conversations were recorded during the period | Both Activity tiles show **0**. The token charts display "_No data for this period._", and **Top capabilities** displays "_No capability usage yet._"<br/><br/>If channels are configured, **Conversations by channel** still shows those channels but contains no columns. |
+| The app has no channels                        | **Conversations by channel** displays "_No data for this period._", even if other sections report conversation activity. |
+
+A value of **0** on an Activity tile means the data loaded successfully but no activity was recorded  
+during the selected period.
+
+The page has no scheduled refresh and no refresh button.  
+Reload the page to retrieve newer data for the selected period.
+
+</Panel>
