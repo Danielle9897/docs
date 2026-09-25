@@ -9,6 +9,9 @@ import CodeBlock from '@theme/CodeBlock';
   E.g. ID or current change-vector.  
 * The current change-vector is stored within the session metadata and is available for each 
   entity using the `GetChangeVectorFor` method from the `Advanced` session operations.
+* To verify in another session that the document still has this change vector,  
+  pass the document ID and change vector to `RegisterForConcurrencyCheck`.  
+  Learn more in [Register a concurrency check without loading the document](../../../../client-api/session/configuration/how-to-enable-optimistic-concurrency.mdx#register-a-concurrency-check-without-loading-the-document).
 
 ## Syntax
 
@@ -36,5 +39,3 @@ string changeVector = session.Advanced.GetChangeVectorFor(employee);
 `}
 </CodeBlock>
 </TabItem>
-
-
