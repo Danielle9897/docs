@@ -1,0 +1,1857 @@
+import Admonition from '@theme/Admonition';
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import Panel from '@site/src/components/Panel';
+import ContentFrame from '@site/src/components/ContentFrame';
+
+<Admonition type="note" title="">
+
+* An **exploration query** uses the RQL `filter` clause (the `Filter()` method in the C# API)  
+  to evaluate a condition on the server against the results a query retrieves.
+    
+* Processing has two main stages:   
+  1. **Retrieve** - the query retrieves results from a collection or an index, as defined by `from` and any `where` condition.
+  2. **Filter** - the server examines the retrieved results one by one and keeps those that match the `filter` condition.
+     No index is used or created for the `filter` condition.  
+     The matching results are returned to the client.
+
+* Because `filter` examines results individually, its cost grows with the number of results it scans.  
+  Use `filter_limit` to cap the number of results examined on large datasets. See [Limit the number of scanned results](#limit-the-number-of-scanned-results).  
+  For recurring queries, prefer `where` when the condition can be indexed. See [When to use exploration queries](#when-to-use-exploration-queries). 
+
+* In this article:
+    * [How exploration queries work](#how-exploration-queries-work)
+    * [When to use exploration queries](#when-to-use-exploration-queries)
+    * [Exploration queries vs disabling auto-index creation](#exploration-queries-vs-disabling-auto-index-creation)
+    * [Exploration queries by query type](#exploration-queries-by-query-type)
+        * [Filter with a full-collection query](#filter-with-a-full-collection-query)
+        * [Filter with a dynamic query](#filter-with-a-dynamic-query)
+        * [Filter with a static index query](#filter-with-a-static-index-query)
+        * [Filter with a Map-Reduce index query](#filter-with-a-map-reduce-index-query)
+    * [Limit the number of scanned results](#limit-the-number-of-scanned-results)
+    * [Filter and sorting](#filter-and-sorting)
+    * [Filter and paging](#filter-and-paging)
+    * [Filter and projections](#filter-and-projections)
+    * [Filter by a related document](#filter-by-a-related-document)
+    * [Filter with a JavaScript function](#filter-with-a-javascript-function)
+    * [Filter and sharding](#filter-and-sharding)
+    * [Supported operators and limitations](#supported-operators-and-limitations)
+    * [Syntax](#syntax)
+
+</Admonition>
+
+<Panel heading="How exploration queries work">
+
+* An exploration query is processed on the server in two main stages:
+
+    1. **Retrieve**  
+       The query retrieves results from a collection or an index (static or auto), as defined by `from` and any `where` condition.  
+       These are the **candidate results** for filtering.  
+       If `order by` is specified, it determines the order in which the filter examines them.
+
+    2. **Filter**  
+       The server examines the candidate results one by one and evaluates the `filter` condition using its JavaScript engine.  
+       Matching results are kept; results that fail the condition are skipped.  
+       No index is used or created for the `filter` condition.
+
+    If the query includes a `select` clause, the matching results are projected before being returned to the client.  
+    Otherwise, the matching results are returned without projection.
+
+* **What the filter condition is evaluated against**:
+    * **Full documents** for full-collection queries and queries on a Map index (static or auto).  
+      The condition can reference document fields that aren't indexed.
+    * **Aggregation results** for Map-Reduce indexes and dynamic `group by` queries.  
+      See [Filter with a Map-Reduce index query](#filter-with-a-map-reduce-index-query).
+
+* **Filtering stops when any of the following occurs**:
+    * Enough results have been collected to fill the requested page.  
+      See [Filter and paging](#filter-and-paging).
+    * No further candidates remain to be examined.
+    * The number of examined candidates reaches `filter_limit`, including candidates rejected by the filter.  
+      See [Limit the number of scanned results](#limit-the-number-of-scanned-results).
+
+* **Comparison semantics**:
+    * `=` and `==` use strict equality (`===`); `!=` and `<>` use strict inequality (`!==`).  
+      Equality compares both type and value.
+    * String comparisons are **case-sensitive**, unlike the default behavior of `where`.  
+      This applies to equality and inequality (`==`, `!=`) and range comparisons (`<`, `<=`, `>`, `>=`).  
+      Uppercase ASCII letters come before lowercase ASCII letters in character-code order.  
+      For example:
+        * `filter Address.Country == "usa"` does not match `"USA"`.
+        * `filter Name >= "a"` excludes `"Apple"` but includes `"apple"`.
+
+* **The RQL structure illustrates this processing flow**:   
+  `filter` comes after `group by`, `where`, `order by`, and `load`, and before `select` and `include`.  
+  `limit` and `filter_limit` come last: `limit` controls paging, and `filter_limit` caps the number of candidates examined.  
+
+  The outline below shows these clauses together. Optional clauses can be omitted:
+
+    ```sql
+    declare function ...         // Optional: define a function to call from 'filter'
+    from <collection-name>       // Or: from index "<index-name>"
+    group by ...                 // Optional: 'filter' then evaluates the aggregation results
+    where ...                    // Optional: narrow the candidate results
+    order by ...                 // Optional: sort candidates before filtering
+    load ...                     // Optional: load related documents for 'filter'
+    filter <condition>           // Evaluated per candidate, without using an index
+    select ...                   // Optional: projection
+    include ...                  // Optional: send related documents to the client with the results
+    limit <offset>, <pageSize>   // Optional: paging
+    filter_limit <number>        // Optional: maximum number of candidates to examine
+    ```                
+
+* **Query statistics on a non-sharded database**:  
+  When a query includes `filter`, the [query statistics](../../../client-api/session/querying/how-to-get-query-statistics.mdx) report:
+    * `ScannedResults` counts the candidates actually examined by the filter.
+    * `SkippedResults` includes candidates rejected by the filter.  
+      It can also include results skipped for other reasons, such as duplicate elimination.
+
+* For sharded databases, see [Filter and sharding](#filter-and-sharding).
+
+</Panel>
+
+<Panel heading="When to use exploration queries">
+    
+* **Use `filter` when**:
+    * You need a one-time or occasional look at your data, for example during development, debugging, or a support investigation,  
+      without creating an index solely for that condition.
+    * The condition references fields that aren't indexed:
+        * In a static-index query, `where` can use only the index fields. A `where` condition on any other field throws an error.
+        * In a dynamic query, a `where` condition on a new field makes RavenDB create an auto-index that includes it.
+    * The condition cannot be expressed as an ordinary `where` comparison, for example:
+        * Comparing two fields of the same document. See [Filter with a JavaScript function](#filter-with-a-javascript-function).
+        * Checking a field of a related document. See [Filter by a related document](#filter-by-a-related-document).
+    * On a **sharded database**, the condition is on an aggregated value of a Map-Reduce or `group by` query, such as `Count`.  
+      `filter` evaluates the combined results, while `where` evaluates each shard's partial results and can miss matches.  
+      See [Filter and sharding](#filter-and-sharding).    
+
+* **Prefer `where` when**:
+    * The query runs repeatedly and the condition can be evaluated using an index.  
+      A dynamic query reuses a suitable auto-index or creates one when needed. Subsequent queries can use that index.
+    * The condition can be indexed and `filter` would otherwise need to scan a large dataset.  
+      The cost of `filter` grows with the number of results it examines.
+    
+* **If you use `filter` on a large dataset**:
+    * Narrow the results with `where` first, so fewer results need to be examined by `filter`.
+    * Request only the page size you need. Filtering stops as soon as the page is full.
+    * Set a [filter_limit](#limit-the-number-of-scanned-results) to cap the number of examined results.  
+      Matching results beyond that limit are not returned.    
+
+* **`where` vs `filter`**:
+    
+  | Feature               | `where`                                                                                         | `filter`                                                                                                   |
+  |-----------------------|-------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------|
+  | **Evaluated against** | An index, for ordinary field conditions                                                         | A document or aggregation result                                                                           |
+  | **Index usage**       | Uses the queried index.<br/>A dynamic query reuses a suitable auto-index or creates one when needed | No index is used or created for the filter condition                                                       |
+  | **Work**              | Uses indexed fields to find matches                                                             | Examines results individually, until the page is full, `filter_limit` is reached, or results are exhausted |
+  | **String comparison** | Case-insensitive by default                                                                     | Case-sensitive                                                                                             |
+  | **Typical use**       | Recurring queries                                                                               | Ad-hoc exploration or additional filtering logic                                                           |    
+
+</Panel>
+
+<Panel heading="Exploration queries vs disabling auto-index creation">
+
+* These two features are often confused, but they solve **different problems**:
+
+    | Feature                           | The question it answers                            | What it does                                                                                                                                             |
+    |-----------------------------------|----------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|
+    | **Disabling auto-index creation** | _"What happens when a query needs an auto-index?"_ | **Blocks** a query that would need a new auto-index - the query fails.<br/>The server setting also blocks queries that would use an existing auto-index. |
+    | **Exploration query** (`filter`)  | _"How can I check a condition without an index?"_  | **Evaluates** the condition by scanning the retrieved results - no index is needed, so none is created.                                                  |
+
+---
+
+### Example
+
+Assume auto-index creation is disabled, and no auto-index covers `UnitsInStock`:
+
+| Query                                    | Result                                                                    |
+|------------------------------------------|---------------------------------------------------------------------------|
+| `from Products where UnitsInStock > 10`  | ❌ **Fails** - `where` needs an auto-index, and creating one is disabled.  |
+| `from Products filter UnitsInStock > 10` | ✅ **Runs** - `filter` scans the _Products_ documents. No index is needed. |
+
+---
+
+### Use them together
+
+* Disable auto-index creation to protect the database from unplanned indexes,  
+  and use `filter` to explore data that no index covers.
+
+* `filter` doesn't exempt the **rest** of the query:  
+  Conditions on ordinary document fields in `where`, or sorting by document fields with `order by`,  
+  still require an auto-index in a collection query, so the settings still apply.
+
+---
+
+### Where to disable auto-index creation
+
+| Setting                                                                                                                                                                | Applies to                                            | Effect                                                                                |
+|------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------|---------------------------------------------------------------------------------------|
+| **Studio**: [Disable creating new Auto-Indexes](../../../studio/database/settings/studio-configuration.mdx#disabling-auto-index-creation-on-studio-queries-or-patches) | Queries and patches run from the Studio, per database | Queries that need a new auto-index fail.<br/>Existing auto-indexes can still be used. |
+| **Server**: [Indexing.DisableQueryOptimizerGeneratedIndexes](../../../server/configuration/indexing-configuration.mdx#indexingdisablequeryoptimizergeneratedindexes)   | All queries and patches, from any client including the Studio.<br/>Server-wide or per database | Queries that need an auto-index fail, even if a suitable one already exists.<br/>Database-level changes take effect after the database is reloaded. |    
+    
+* _Patch-by-query_ and _delete-by-query_ operations do not support `filter`.  
+  You therefore cannot use `filter` to avoid the auto-index requirements of these operations.  
+  See [Query and operation restrictions](#query-and-operation-restrictions).  
+
+</Panel>
+
+<Panel heading="Exploration queries by query type">
+
+* You can use `filter` with each of the following query types:
+    * **[Full-collection query](../../../querying/overview.mdx#3-query-a-collection---query-full-collection--query-by-id)** -  
+      Reads documents directly from a collection, without using a static index or an auto-index.
+    * **[Dynamic query](../../../querying/overview.mdx#2-query-a-collection---with-filtering)** -  
+      Queries a collection using an auto-index, for example to evaluate `where` conditions or sort by a document field.  
+      RavenDB reuses a suitable auto-index or creates one when needed.
+    * **[Static-index query](../../../querying/overview.mdx#1-query-an-existing-index)** -  
+      Retrieves results using the static index explicitly specified in the query.
+
+* For queries on Map-Reduce indexes and dynamic `group by` queries,  
+  `filter` evaluates **aggregation results** rather than individual documents.  
+  See [Filter with a Map-Reduce index query](#filter-with-a-map-reduce-index-query).
+
+* In each case, `filter` applies an **additional condition** to the results retrieved by the query,  
+  without using or creating an index for that condition.
+    
+---
+    
+<ContentFrame>
+    
+### Filter with a full-collection query
+    
+* In a full-collection query, `filter` examines documents directly from the collection.  
+  No index is used and no auto-index is created.
+
+* The following query returns all companies located in the USA.  
+  Each matching result is a full `Company` document.  
+  No page size or `filter_limit` is set, so the filter examines the entire collection:    
+
+<Tabs groupId='languageSyntax'>
+<TabItem value="Query" label="Query">
+```csharp
+List<Company> companies = session
+    .Query<Company>()
+    // Scan all documents in the collection and keep only companies located in the USA.
+    // No auto-index is created.
+    .Filter(c => c.Address.Country == "USA")
+    .ToList();
+```
+</TabItem>
+<TabItem value="Query_async" label="Query_async">
+```csharp
+List<Company> companies = await asyncSession
+    .Query<Company>()
+    // Scan all documents in the collection and keep only companies located in the USA.
+    // No auto-index is created.
+    .Filter(c => c.Address.Country == "USA")
+    .ToListAsync();
+```
+</TabItem>
+<TabItem value="DocumentQuery" label="DocumentQuery">
+```csharp
+List<Company> companies = session.Advanced
+    .DocumentQuery<Company>()
+    // Scan all documents in the collection and keep only companies located in the USA.
+    // No auto-index is created.
+    .Filter(f => f.Equals(c => c.Address.Country, "USA"))
+    .ToList();
+```
+</TabItem>
+<TabItem value="DocumentQuery_async" label="DocumentQuery_async">
+```csharp
+List<Company> companies = await asyncSession.Advanced
+    .AsyncDocumentQuery<Company>()
+    // Scan all documents in the collection and keep only companies located in the USA.
+    // No auto-index is created.
+    .Filter(f => f.Equals(c => c.Address.Country, "USA"))
+    .ToListAsync();
+```
+</TabItem>
+<TabItem value="RawQuery" label="RawQuery">
+```csharp
+List<Company> companies = session.Advanced
+    .RawQuery<Company>("from Companies filter Address.Country == $country")
+    .AddParameter("country", "USA")
+    .ToList();
+```
+</TabItem>
+<TabItem value="RawQuery_async" label="RawQuery_async">
+```csharp
+List<Company> companies = await asyncSession.Advanced
+    .AsyncRawQuery<Company>("from Companies filter Address.Country == $country")
+    .AddParameter("country", "USA")
+    .ToListAsync();
+```
+</TabItem>
+<TabItem value="RQL" label="RQL">
+```sql
+from Companies
+filter Address.Country == "USA"
+```
+</TabItem>
+</Tabs>
+
+<Admonition type="warning" title="">
+    
+Without a page size or `filter_limit`, filtering a large collection can scan every document in it,  
+which burdens the server and prolongs the query time.  
+Set a [filter_limit](#limit-the-number-of-scanned-results) to restrict the number of scanned documents.    
+
+</Admonition>    
+    
+</ContentFrame>
+<ContentFrame>
+    
+### Filter with a dynamic query
+
+* A collection query is a **dynamic query** when it uses `where` to filter by document fields (other than just the document ID),  
+  `order by` to sort by a document field, or both.  
+  RavenDB reuses a suitable auto-index or creates one when needed.  
+  Learn more in [Query a collection - with filtering](../../../querying/overview.mdx#2-query-a-collection---with-filtering).
+
+* Adding `filter` applies an additional condition to the results retrieved by the dynamic query.  
+  If the query includes `where`, only results matching that condition are examined by `filter`.  
+  The fields referenced in `filter` are **not** added to the auto-index.
+
+* The following query returns full `Company` documents whose contact title matches _"Sales Representative"_  
+  and whose country is exactly _"Germany"_.
+
+* The `where` condition uses an auto-index on `Contact.Title`, such as `Auto/Companies/ByContact.Title`.  
+  The `filter` condition examines the retrieved documents; `Address.Country` does not need to be indexed:
+
+<Tabs groupId='languageSyntax'>
+<TabItem value="Query" label="Query">
+```csharp
+List<Company> companies = session
+    .Query<Company>()
+    // 'Where' is evaluated against an auto-index that indexes 'Contact.Title'
+    .Where(c => c.Contact.Title == "Sales Representative")
+    // 'Filter' scans only the results that matched the 'Where' condition.
+    // 'Address.Country' is NOT added to the auto-index.
+    .Filter(c => c.Address.Country == "Germany")
+    .ToList();
+```
+</TabItem>
+<TabItem value="Query_async" label="Query_async">
+```csharp
+List<Company> companies = await asyncSession
+    .Query<Company>()
+    // 'Where' is evaluated against an auto-index that indexes 'Contact.Title'
+    .Where(c => c.Contact.Title == "Sales Representative")
+    // 'Filter' scans only the results that matched the 'Where' condition.
+    // 'Address.Country' is NOT added to the auto-index.
+    .Filter(c => c.Address.Country == "Germany")
+    .ToListAsync();
+```
+</TabItem>
+<TabItem value="DocumentQuery" label="DocumentQuery">
+```csharp
+List<Company> companies = session.Advanced
+    .DocumentQuery<Company>()
+    // 'WhereEquals' is evaluated against an auto-index that indexes 'Contact.Title'
+    .WhereEquals(c => c.Contact.Title, "Sales Representative")
+    // 'Filter' scans only the results that matched the 'WhereEquals' condition.
+    // 'Address.Country' is NOT added to the auto-index.
+    .Filter(f => f.Equals(c => c.Address.Country, "Germany"))
+    .ToList();
+```
+</TabItem>
+<TabItem value="DocumentQuery_async" label="DocumentQuery_async">
+```csharp
+List<Company> companies = await asyncSession.Advanced
+    .AsyncDocumentQuery<Company>()
+    // 'WhereEquals' is evaluated against an auto-index that indexes 'Contact.Title'
+    .WhereEquals(c => c.Contact.Title, "Sales Representative")
+    // 'Filter' scans only the results that matched the 'WhereEquals' condition.
+    // 'Address.Country' is NOT added to the auto-index.
+    .Filter(f => f.Equals(c => c.Address.Country, "Germany"))
+    .ToListAsync();
+```
+</TabItem>
+<TabItem value="RawQuery" label="RawQuery">
+```csharp
+List<Company> companies = session.Advanced
+    .RawQuery<Company>(@"
+        from Companies
+        where Contact.Title == $title
+        filter Address.Country == $country")
+    .AddParameter("title", "Sales Representative")
+    .AddParameter("country", "Germany")
+    .ToList();
+```
+</TabItem>
+<TabItem value="RawQuery_async" label="RawQuery_async">
+```csharp
+List<Company> companies = await asyncSession.Advanced
+    .AsyncRawQuery<Company>(@"
+        from Companies
+        where Contact.Title == $title
+        filter Address.Country == $country")
+    .AddParameter("title", "Sales Representative")
+    .AddParameter("country", "Germany")
+    .ToListAsync();
+```
+</TabItem>
+<TabItem value="RQL" label="RQL">
+```sql
+from Companies
+where Contact.Title == "Sales Representative"
+filter Address.Country == "Germany"
+```
+</TabItem>
+</Tabs>
+
+</ContentFrame>
+<ContentFrame>    
+    
+### Filter with a static index query
+
+* For a static Map index, `where` uses the index fields, while `filter` evaluates the original documents.  
+  This lets you inspect a document field that the index doesn't include.
+
+* Create and deploy the following index, which indexes only the product's `Category`:
+
+    ```csharp
+    public class Products_ByCategory : AbstractIndexCreationTask<Product>
+    {
+        public class IndexEntry
+        {
+            // The index field
+            public string Category { get; set; }
+        }
+    
+        public Products_ByCategory()
+        {
+            Map = products => from product in products
+                              select new IndexEntry
+                              {
+                                  Category = product.Category
+                              };
+        }
+    }
+    ```
+    <br/>
+
+* Query the index for beverages (_categories/1-A_), then filter the retrieved documents to those whose `PricePerUnit` is greater than 20.  
+  `PricePerUnit` is not indexed by this index.  
+  Each matching result is a full `Product` document.  
+  The query uses the specified static index. No auto-index is created:
+
+<Tabs groupId='languageSyntax'>
+<TabItem value="Query" label="Query">
+```csharp
+List<Product> products = session
+    .Query<Product, Products_ByCategory>()
+    // 'Where' is evaluated against the index-field 'Category'
+    .Where(p => p.Category == "categories/1-A")
+    // 'Filter' is evaluated against each retrieved Product document
+    .Filter(p => p.PricePerUnit > 20)
+    .ToList();
+```
+</TabItem>
+<TabItem value="Query_async" label="Query_async">
+```csharp
+List<Product> products = await asyncSession
+    .Query<Product, Products_ByCategory>()
+    // 'Where' is evaluated against the index-field 'Category'
+    .Where(p => p.Category == "categories/1-A")
+    // 'Filter' is evaluated against each retrieved Product document
+    .Filter(p => p.PricePerUnit > 20)
+    .ToListAsync();
+```
+</TabItem>
+<TabItem value="DocumentQuery" label="DocumentQuery">
+```csharp
+List<Product> products = session.Advanced
+    .DocumentQuery<Product, Products_ByCategory>()
+    // 'WhereEquals' is evaluated against the index-field 'Category'
+    .WhereEquals(p => p.Category, "categories/1-A")
+    // 'Filter' is evaluated against each retrieved Product document
+    .Filter(f => f.GreaterThan(p => p.PricePerUnit, 20))
+    .ToList();
+```
+</TabItem>
+<TabItem value="DocumentQuery_async" label="DocumentQuery_async">
+```csharp
+List<Product> products = await asyncSession.Advanced
+    .AsyncDocumentQuery<Product, Products_ByCategory>()
+    // 'WhereEquals' is evaluated against the index-field 'Category'
+    .WhereEquals(p => p.Category, "categories/1-A")
+    // 'Filter' is evaluated against each retrieved Product document
+    .Filter(f => f.GreaterThan(p => p.PricePerUnit, 20))
+    .ToListAsync();
+```
+</TabItem>
+<TabItem value="RawQuery" label="RawQuery">
+```csharp
+List<Product> products = session.Advanced
+    .RawQuery<Product>(@"
+        from index 'Products/ByCategory'
+        where Category == $category
+        filter PricePerUnit > $price")
+    .AddParameter("category", "categories/1-A")
+    .AddParameter("price", 20)
+    .ToList();
+```
+</TabItem>
+<TabItem value="RawQuery_async" label="RawQuery_async">
+```csharp
+List<Product> products = await asyncSession.Advanced
+    .AsyncRawQuery<Product>(@"
+        from index 'Products/ByCategory'
+        where Category == $category
+        filter PricePerUnit > $price")
+    .AddParameter("category", "categories/1-A")
+    .AddParameter("price", 20)
+    .ToListAsync();
+```
+</TabItem>
+<TabItem value="RQL" label="RQL">
+```sql
+from index "Products/ByCategory"
+where Category == "categories/1-A"
+filter PricePerUnit > 20
+```
+</TabItem>
+</Tabs>
+
+</ContentFrame>
+    
+<ContentFrame>
+    
+### Filter with a Map-Reduce index query
+
+* When querying a Map-Reduce index, the `filter` condition is evaluated against the **aggregation results**,  
+  so it references the reduce result fields rather than the original documents.  
+  The same applies to dynamic `group by` queries.
+
+* For behavior on a sharded database, see [Filter and sharding](#filter-and-sharding).
+
+* The C# queries in both examples use the following result class:
+
+    ```csharp
+    public class OrdersByCompanyResult
+    {
+        public string Company { get; set; }
+        public int Count { get; set; }
+    }
+    ```
+    <br/>
+
+---
+    
+#### Example 1: Query a static Map-Reduce index
+
+* The Map-Reduce index _Orders/ByCompany_ (included in the sample data) counts orders per company in a `Count` field.  
+  The following query returns aggregation results for companies that placed more than 20 orders.
+
+* The example below uses `filter` to demonstrate filtering aggregation results.  
+  On a **non-sharded database**, `where Count > 20` returns the same results and is preferable for this condition:  
+  it uses the indexed `Count` field to find matches, while `filter` examines the aggregation results one by one.
+
+<Tabs groupId='languageSyntax'>
+<TabItem value="Query" label="Query">
+```csharp
+List<OrdersByCompanyResult> companies = session
+    .Query<OrdersByCompanyResult>("Orders/ByCompany", isMapReduce: true)
+    // 'Filter' is evaluated against each aggregation result.
+    .Filter(r => r.Count > 20)
+    .ToList();
+```
+</TabItem>
+<TabItem value="Query_async" label="Query_async">
+```csharp
+List<OrdersByCompanyResult> companies = await asyncSession
+    .Query<OrdersByCompanyResult>("Orders/ByCompany", isMapReduce: true)
+    // 'Filter' is evaluated against each aggregation result.
+    .Filter(r => r.Count > 20)
+    .ToListAsync();
+```
+</TabItem>
+<TabItem value="DocumentQuery" label="DocumentQuery">
+```csharp
+List<OrdersByCompanyResult> companies = session.Advanced
+    .DocumentQuery<OrdersByCompanyResult>("Orders/ByCompany", isMapReduce: true)
+    // 'Filter' is evaluated against each aggregation result.
+    .Filter(f => f.GreaterThan(r => r.Count, 20))
+    .ToList();
+```
+</TabItem>
+<TabItem value="DocumentQuery_async" label="DocumentQuery_async">
+```csharp
+List<OrdersByCompanyResult> companies = await asyncSession.Advanced
+    .AsyncDocumentQuery<OrdersByCompanyResult>("Orders/ByCompany", isMapReduce: true)
+    // 'Filter' is evaluated against each aggregation result.
+    .Filter(f => f.GreaterThan(r => r.Count, 20))
+    .ToListAsync();
+```
+</TabItem>
+<TabItem value="RawQuery" label="RawQuery">
+```csharp
+List<OrdersByCompanyResult> companies = session.Advanced
+    .RawQuery<OrdersByCompanyResult>(@"
+        from index 'Orders/ByCompany'
+        filter Count > $minimum")
+    .AddParameter("minimum", 20)
+    .ToList();
+```
+</TabItem>
+<TabItem value="RawQuery_async" label="RawQuery_async">
+```csharp
+List<OrdersByCompanyResult> companies = await asyncSession.Advanced
+    .AsyncRawQuery<OrdersByCompanyResult>(@"
+        from index 'Orders/ByCompany'
+        filter Count > $minimum")
+    .AddParameter("minimum", 20)
+    .ToListAsync();
+```
+</TabItem>
+<TabItem value="RQL" label="RQL">
+```sql
+from index "Orders/ByCompany"
+filter Count > 20
+```
+</TabItem>
+</Tabs>
+
+#### Example 2: Use a dynamic group by query
+
+* The following query groups orders by `Company`, then filters the aggregation results to companies that placed more than 20 orders.
+
+* RavenDB reuses a suitable auto Map-Reduce index or creates one when needed.  
+  The `filter` condition evaluates the aggregation results without using an index for that condition.
+
+* In RQL, reference the aggregation result field `Count` in `filter`.  
+  Use `count()` in `select` to produce the count; `filter count() > 20` is not supported and throws an error.
+
+* In LINQ, use `g.Count()` in the `Filter` predicate after `GroupBy`.  
+  The client translates it to the aggregation result field `Count` in RQL.
+
+* The C# queries use the same `OrdersByCompanyResult` class shown above:
+
+<Tabs groupId='languageSyntax'>
+<TabItem value="Query" label="Query">
+```csharp
+List<OrdersByCompanyResult> companies = session
+    .Query<Order>()
+    // Group orders by company using an auto Map-Reduce index.
+    .GroupBy(o => o.Company)
+    // 'g.Count()' is translated to the aggregation result field 'Count'.
+    .Filter(g => g.Count() > 20)
+    .Select(g => new OrdersByCompanyResult
+    {
+        Company = g.Key,
+        Count = g.Count()
+    })
+    .ToList();
+```
+</TabItem>
+<TabItem value="Query_async" label="Query_async">
+```csharp
+List<OrdersByCompanyResult> companies = await asyncSession
+    .Query<Order>()
+    // Group orders by company using an auto Map-Reduce index.
+    .GroupBy(o => o.Company)
+    // 'g.Count()' is translated to the aggregation result field 'Count'.
+    .Filter(g => g.Count() > 20)
+    .Select(g => new OrdersByCompanyResult
+    {
+        Company = g.Key,
+        Count = g.Count()
+    })
+    .ToListAsync();
+```
+</TabItem>
+<TabItem value="DocumentQuery" label="DocumentQuery">
+```csharp
+List<OrdersByCompanyResult> companies = session.Advanced
+    .DocumentQuery<Order>()
+    // Group orders by company using an auto Map-Reduce index.
+    .GroupBy("Company")
+    // Filter the aggregation results by their 'Count' field.
+    .Filter(f => f.GreaterThan("Count", 20))
+    .SelectKey("Company")
+    .SelectCount("Count")
+    .OfType<OrdersByCompanyResult>()
+    .ToList();
+```
+</TabItem>
+<TabItem value="DocumentQuery_async" label="DocumentQuery_async">
+```csharp
+List<OrdersByCompanyResult> companies = await asyncSession.Advanced
+    .AsyncDocumentQuery<Order>()
+    // Group orders by company using an auto Map-Reduce index.
+    .GroupBy("Company")
+    // Filter the aggregation results by their 'Count' field.
+    .Filter(f => f.GreaterThan("Count", 20))
+    .SelectKey("Company")
+    .SelectCount("Count")
+    .OfType<OrdersByCompanyResult>()
+    .ToListAsync();
+```
+</TabItem>
+<TabItem value="RawQuery" label="RawQuery">
+```csharp
+List<OrdersByCompanyResult> companies = session.Advanced
+    .RawQuery<OrdersByCompanyResult>(@"
+        from Orders
+        group by Company
+        filter Count > $minimum
+        select Company, count() as Count")
+    .AddParameter("minimum", 20)
+    .ToList();
+```
+</TabItem>
+<TabItem value="RawQuery_async" label="RawQuery_async">
+```csharp
+List<OrdersByCompanyResult> companies = await asyncSession.Advanced
+    .AsyncRawQuery<OrdersByCompanyResult>(@"
+        from Orders
+        group by Company
+        filter Count > $minimum
+        select Company, count() as Count")
+    .AddParameter("minimum", 20)
+    .ToListAsync();
+```
+</TabItem>
+<TabItem value="RQL" label="RQL">
+```sql
+from Orders
+group by Company
+filter Count > 20
+select Company, count() as Count
+```
+</TabItem>
+</Tabs>
+
+</ContentFrame>   
+    
+</Panel>
+
+<Panel heading="Limit the number of scanned results">
+
+* Set the `limit` argument of `Filter` (LINQ and DocumentQuery), or `filter_limit` in RQL,  
+  to specify the **maximum number of candidate results the filter examines**.
+
+* **The limit applies to all candidates examined by the filter, whether they pass or fail the condition.**  
+  Candidates beyond the limit aren't examined or returned, even if they would match.
+
+* The `Filter` limit (`filter_limit` in RQL) caps the number of candidates examined.  
+  The **page size** caps the number of matching results returned.  
+  Filtering can stop before reaching the `Filter` limit if the page is full or no more candidates remain.  
+  See [Filter and paging](#filter-and-paging).
+
+* For example, assume no explicit page size is set, the condition is `Country == "USA"`,  
+  and `filter_limit` is 2. The candidates are examined in the order shown below:
+
+    | Candidate result | Country | Examined by filter | Returned |
+    |------------------|---------|--------------------|----------|
+    | Employee 1       | USA     | Yes                | Yes      |
+    | Employee 2       | Poland  | Yes                | No       |
+    | Employee 3       | USA     | No: limit reached  | No       |
+
+    Two employees are examined by the filter condition, but only **Employee 1** is returned.
+
+* **As a result**:
+    * A query can return fewer results, or even no results, while matching candidates exist beyond the `Filter` limit.
+    * Which candidates are examined depends on the order in which the query retrieves them.  
+      Use [sorting](#filter-and-sorting) to control this order.
+
+* **Notes**:
+    * By default, no explicit `Filter` limit is set.
+    * The `Filter` limit must be greater than 0.
+    * For a non-Map-Reduce query on a sharded database, each shard applies the `Filter` limit locally.  
+      It is not a database-wide cap on the total work done by all shards.  
+      The orchestrator also caps the number of returned results at `filter_limit`.  
+      See [Filter and sharding](#filter-and-sharding).
+
+* On a **non-sharded database**, the following query examines up to 100 orders and returns those shipped to the UK.  
+  It also requests [query statistics](../../../client-api/session/querying/how-to-get-query-statistics.mdx):
+
+<Tabs groupId='languageSyntax'>
+<TabItem value="Query" label="Query">
+```csharp
+List<Order> orders = session
+    .Query<Order>()
+    // Get query statistics to see how many results were scanned
+    .Statistics(out QueryStatistics stats)
+    // Examine up to 100 candidate results
+    .Filter(o => o.ShipTo.Country == "UK", limit: 100)
+    .ToList();
+
+// orders.Count: the number of examined orders that matched the filter.
+// stats.ScannedResults: the number examined, at most 100.
+```
+</TabItem>
+<TabItem value="Query_async" label="Query_async">
+```csharp
+List<Order> orders = await asyncSession
+    .Query<Order>()
+    // Get query statistics to see how many results were scanned
+    .Statistics(out QueryStatistics stats)
+    // Examine up to 100 candidate results
+    .Filter(o => o.ShipTo.Country == "UK", limit: 100)
+    .ToListAsync();
+
+// orders.Count: the number of examined orders that matched the filter.
+// stats.ScannedResults: the number examined, at most 100.
+```
+</TabItem>
+<TabItem value="DocumentQuery" label="DocumentQuery">
+```csharp
+List<Order> orders = session.Advanced
+    .DocumentQuery<Order>()
+    // Get query statistics to see how many results were scanned
+    .Statistics(out QueryStatistics stats)
+    // Examine up to 100 candidate results
+    .Filter(f => f.Equals(o => o.ShipTo.Country, "UK"), limit: 100)
+    .ToList();
+
+// orders.Count: the number of examined orders that matched the filter.
+// stats.ScannedResults: the number examined, at most 100.
+```
+</TabItem>
+<TabItem value="DocumentQuery_async" label="DocumentQuery_async">
+```csharp
+List<Order> orders = await asyncSession.Advanced
+    .AsyncDocumentQuery<Order>()
+    // Get query statistics to see how many results were scanned
+    .Statistics(out QueryStatistics stats)
+    // Examine up to 100 candidate results
+    .Filter(f => f.Equals(o => o.ShipTo.Country, "UK"), limit: 100)
+    .ToListAsync();
+
+// orders.Count: the number of examined orders that matched the filter.
+// stats.ScannedResults: the number examined, at most 100.
+```
+</TabItem>
+<TabItem value="RawQuery" label="RawQuery">
+```csharp
+List<Order> orders = session.Advanced
+    .RawQuery<Order>(@"
+        from Orders
+        filter ShipTo.Country == $country
+        filter_limit $limit")
+    .AddParameter("country", "UK")
+    .AddParameter("limit", 100)
+    // Get query statistics to see how many results were scanned
+    .Statistics(out QueryStatistics stats)
+    .ToList();
+
+// orders.Count: the number of examined orders that matched the filter.
+// stats.ScannedResults: the number examined, at most 100.
+```
+</TabItem>
+<TabItem value="RawQuery_async" label="RawQuery_async">
+```csharp
+List<Order> orders = await asyncSession.Advanced
+    .AsyncRawQuery<Order>(@"
+        from Orders
+        filter ShipTo.Country == $country
+        filter_limit $limit")
+    .AddParameter("country", "UK")
+    .AddParameter("limit", 100)
+    // Get query statistics to see how many results were scanned
+    .Statistics(out QueryStatistics stats)
+    .ToListAsync();
+
+// orders.Count: the number of examined orders that matched the filter.
+// stats.ScannedResults: the number examined, at most 100.
+```
+</TabItem>
+<TabItem value="RQL" label="RQL">
+```sql
+from Orders
+filter ShipTo.Country == "UK"
+filter_limit 100
+```
+</TabItem>
+</Tabs>
+
+</Panel>
+
+<Panel heading="Filter and sorting">
+
+* Sorting is applied **before filtering**.  
+  Use `OrderBy` / `OrderByDescending` in LINQ and DocumentQuery, or `order by` in RQL, to determine the order in which the filter examines candidate results.  
+  Results that pass the filter retain this order.
+
+* In LINQ and DocumentQuery, placing `OrderBy` before or after `Filter` does not change the execution order.  
+  The client generates RQL with `order by` before `filter`.
+
+* With a `Filter` limit, sorting determines **which candidates are examined before the limit is reached**.
+
+* **Notes**:
+    
+    * **Without explicit sorting**: A full-collection query examines documents in storage order.  
+      This order can change as documents are updated, so don't rely on it to select a particular subset.
+    
+    * **Equal sort values**: If the sort field contains repeated values, add a unique secondary sort field  
+      when you need a deterministic choice among those candidates.  
+      See [Chain ordering](../../../querying/sorting-query-results/sort-query-results.mdx#chain-ordering).
+
+* On a **non-sharded database**, the following query examines up to 50 orders, starting with those with the highest freight cost.  
+  It returns the UK orders found among those candidates, in descending `Freight` order.  
+  Orders beyond the first 50 candidates aren't examined or returned.
+
+  Sorting by `Freight` uses a suitable auto-index, creating one if needed.  
+  The `ShipTo.Country` field used by the filter does not need to be indexed.
+
+<Tabs groupId='languageSyntax'>
+<TabItem value="Query" label="Query">
+```csharp
+List<Order> orders = session
+    .Query<Order>()
+    // Sort the retrieved results first (this uses an auto-index on 'Freight')
+    .OrderByDescending(o => o.Freight)
+    // Examine up to 50 candidates in descending freight order
+    .Filter(o => o.ShipTo.Country == "UK", limit: 50)
+    .ToList();
+```
+</TabItem>
+<TabItem value="Query_async" label="Query_async">
+```csharp
+List<Order> orders = await asyncSession
+    .Query<Order>()
+    // Sort the retrieved results first (this uses an auto-index on 'Freight')
+    .OrderByDescending(o => o.Freight)
+    // Examine up to 50 candidates in descending freight order
+    .Filter(o => o.ShipTo.Country == "UK", limit: 50)
+    .ToListAsync();
+```
+</TabItem>
+<TabItem value="DocumentQuery" label="DocumentQuery">
+```csharp
+List<Order> orders = session.Advanced
+    .DocumentQuery<Order>()
+    // Sort the retrieved results first (this uses an auto-index on 'Freight')
+    .OrderByDescending(o => o.Freight)
+    // Examine up to 50 candidates in descending freight order
+    .Filter(f => f.Equals(o => o.ShipTo.Country, "UK"), limit: 50)
+    .ToList();
+```
+</TabItem>
+<TabItem value="DocumentQuery_async" label="DocumentQuery_async">
+```csharp
+List<Order> orders = await asyncSession.Advanced
+    .AsyncDocumentQuery<Order>()
+    // Sort the retrieved results first (this uses an auto-index on 'Freight')
+    .OrderByDescending(o => o.Freight)
+    // Examine up to 50 candidates in descending freight order
+    .Filter(f => f.Equals(o => o.ShipTo.Country, "UK"), limit: 50)
+    .ToListAsync();
+```
+</TabItem>
+<TabItem value="RawQuery" label="RawQuery">
+```csharp
+List<Order> orders = session.Advanced
+    .RawQuery<Order>(@"
+        from Orders
+        order by Freight as double desc
+        filter ShipTo.Country == $country
+        filter_limit $limit")
+    .AddParameter("country", "UK")
+    .AddParameter("limit", 50)
+    .ToList();
+```
+</TabItem>
+<TabItem value="RawQuery_async" label="RawQuery_async">
+```csharp
+List<Order> orders = await asyncSession.Advanced
+    .AsyncRawQuery<Order>(@"
+        from Orders
+        order by Freight as double desc
+        filter ShipTo.Country == $country
+        filter_limit $limit")
+    .AddParameter("country", "UK")
+    .AddParameter("limit", 50)
+    .ToListAsync();
+```
+</TabItem>
+<TabItem value="RQL" label="RQL">
+```sql
+from Orders
+order by Freight as double desc
+filter ShipTo.Country == "UK"
+filter_limit 50
+```
+</TabItem>
+</Tabs>
+
+</Panel>
+
+<Panel heading="Filter and paging">
+
+### Paging settings
+
+* For a document query on a **non-sharded database**, the offset, page size, and `Filter` limit have different roles:
+
+    | Setting                                      | What it counts                                                                               |
+    |----------------------------------------------|----------------------------------------------------------------------------------------------|
+    | `Skip` / the offset in RQL `limit`           | Candidate results to bypass **before** the filter starts examining them.                     |
+    | `Take` / the page size in RQL `limit`        | The maximum number of matching results to return.                                            |
+    | `Filter(..., limit: n)` / RQL `filter_limit` | The maximum number of candidates to examine after the offset, including rejected candidates. |
+
+* The filter examines candidates until it fills the page, reaches the `Filter` limit, or runs out of candidates.  
+  The `Filter` limit applies separately to each query execution, starting after that query's offset.
+
+### Calculate the next offset
+
+* For this query pattern, `SkippedResults` counts candidates rejected by the filter during the **current request**.  
+  It does not include candidates bypassed by `Skip`.  
+  Add both the returned results and the rejected candidates to the current offset:
+
+  `nextOffset = currentOffset + returnedResults.Count + stats.SkippedResults`
+
+  This follows the approach described in [Paging through tampered results](../../../indexes/querying/paging.mdx#paging-through-tampered-results).  
+  Do not use this formula for sharded document queries: their `SkippedResults` statistic does not count filter rejections.  
+  See [Filter and sharding](#filter-and-sharding).
+
+* **For example**, assume the candidates are Employee 1 / USA, Employee 2 / Poland, Employee 3 / USA, and Employee 4 / USA, in that order:
+    * Filtering for USA with `Take(2)` returns Employees 1 and 3.
+    * Three candidates were examined: 2 returned and 1 rejected.
+    * The next offset is therefore **3**: `0 + 2 + 1`.
+    * Using `Skip(2)` would examine Employee 3 again, repeating a result from the previous page.
+
+### Paging with a `Filter` limit
+
+* An empty page can mean that none of the examined candidates passed the filter, while matching candidates exist beyond the `Filter` limit.  
+  Use the same next-offset formula to advance past the examined candidates.
+* For example, with `filter_limit 100`, if all 100 examined candidates are rejected, the page is empty,  
+  `ScannedResults` is 100, and `SkippedResults` is 100. The next offset is the current offset + 100.
+* For this simple document-query pattern on a non-sharded database, after an empty page:
+    * If `ScannedResults < filter_limit`, the remaining candidates were exhausted and paging can stop.
+    * If `ScannedResults == filter_limit`, request another page from the advanced offset to check for more candidates.
+
+### Notes
+
+* **`TotalResults`**:  
+  Do not use this statistic to calculate the page count. It is not guaranteed to count every result that would pass the filter,  
+  especially when filtering stops early.
+
+* Queries with distinct projections, multiple index entries per document, or sharding require attention to their own paging behavior.  
+  See [Paging](../../../indexes/querying/paging.mdx) and [Sharding: Paging query results](../../../sharding/querying.mdx#paging-query-results).
+
+---
+    
+### Example: Page through matching orders
+
+* The following example pages through orders shipped to the USA, returning up to 10 per page.  
+  It returns full documents from a non-sharded database and assumes the data and candidate order remain unchanged between requests.  
+  **No explicit `Filter` limit is set**, so the filter can examine all remaining candidates if needed.  
+  An empty page therefore means there are no remaining matches.  
+  The loop continues while `pagedResults.Count > 0`:
+
+<Tabs groupId='languageSyntax'>
+<TabItem value="Query" label="Query">
+```csharp
+const int pageSize = 10;
+int offset = 0;
+List<Order> pagedResults;
+
+do
+{
+    pagedResults = session
+        .Query<Order>()
+        .Statistics(out QueryStatistics stats)
+        .Filter(o => o.ShipTo.Country == "USA")
+        // Skip the candidates examined by previous page requests
+        .Skip(offset)
+        // Return at most 'pageSize' results that passed the filter
+        .Take(pageSize)
+        .ToList();
+
+    // Process the current page here...
+
+    // Advance the offset by the results returned AND the results the filter rejected
+    offset += pagedResults.Count + (int)stats.SkippedResults;
+}
+while (pagedResults.Count > 0);
+```
+</TabItem>
+<TabItem value="Query_async" label="Query_async">
+```csharp
+const int pageSize = 10;
+int offset = 0;
+List<Order> pagedResults;
+
+do
+{
+    pagedResults = await asyncSession
+        .Query<Order>()
+        .Statistics(out QueryStatistics stats)
+        .Filter(o => o.ShipTo.Country == "USA")
+        // Skip the candidates examined by previous page requests
+        .Skip(offset)
+        // Return at most 'pageSize' results that passed the filter
+        .Take(pageSize)
+        .ToListAsync();
+
+    // Process the current page here...
+
+    // Advance the offset by the results returned AND the results the filter rejected
+    offset += pagedResults.Count + (int)stats.SkippedResults;
+}
+while (pagedResults.Count > 0);
+```
+</TabItem>
+<TabItem value="DocumentQuery" label="DocumentQuery">
+```csharp
+const int pageSize = 10;
+int offset = 0;
+List<Order> pagedResults;
+
+do
+{
+    pagedResults = session.Advanced
+        .DocumentQuery<Order>()
+        .Statistics(out QueryStatistics stats)
+        .Filter(f => f.Equals(o => o.ShipTo.Country, "USA"))
+        // Skip the candidates examined by previous page requests
+        .Skip(offset)
+        // Return at most 'pageSize' results that passed the filter
+        .Take(pageSize)
+        .ToList();
+
+    // Process the current page here...
+
+    // Advance the offset by the results returned AND the results the filter rejected
+    offset += pagedResults.Count + (int)stats.SkippedResults;
+}
+while (pagedResults.Count > 0);
+```
+</TabItem>
+<TabItem value="DocumentQuery_async" label="DocumentQuery_async">
+```csharp
+const int pageSize = 10;
+int offset = 0;
+List<Order> pagedResults;
+
+do
+{
+    pagedResults = await asyncSession.Advanced
+        .AsyncDocumentQuery<Order>()
+        .Statistics(out QueryStatistics stats)
+        .Filter(f => f.Equals(o => o.ShipTo.Country, "USA"))
+        // Skip the candidates examined by previous page requests
+        .Skip(offset)
+        // Return at most 'pageSize' results that passed the filter
+        .Take(pageSize)
+        .ToListAsync();
+
+    // Process the current page here...
+
+    // Advance the offset by the results returned AND the results the filter rejected
+    offset += pagedResults.Count + (int)stats.SkippedResults;
+}
+while (pagedResults.Count > 0);
+```
+</TabItem>
+<TabItem value="RawQuery" label="RawQuery">
+```csharp
+const int pageSize = 10;
+int offset = 0;
+List<Order> pagedResults;
+
+do
+{
+    pagedResults = session.Advanced
+        .RawQuery<Order>("from Orders filter ShipTo.Country == $country")
+        .AddParameter("country", "USA")
+        .Statistics(out QueryStatistics stats)
+        // Skip the candidates examined by previous page requests
+        .Skip(offset)
+        // Return at most 'pageSize' results that passed the filter
+        .Take(pageSize)
+        .ToList();
+
+    // Process the current page here...
+
+    // Advance the offset by the results returned AND the results the filter rejected
+    offset += pagedResults.Count + (int)stats.SkippedResults;
+}
+while (pagedResults.Count > 0);
+```
+</TabItem>
+<TabItem value="RawQuery_async" label="RawQuery_async">
+```csharp
+const int pageSize = 10;
+int offset = 0;
+List<Order> pagedResults;
+
+do
+{
+    pagedResults = await asyncSession.Advanced
+        .AsyncRawQuery<Order>("from Orders filter ShipTo.Country == $country")
+        .AddParameter("country", "USA")
+        .Statistics(out QueryStatistics stats)
+        // Skip the candidates examined by previous page requests
+        .Skip(offset)
+        // Return at most 'pageSize' results that passed the filter
+        .Take(pageSize)
+        .ToListAsync();
+
+    // Process the current page here...
+
+    // Advance the offset by the results returned AND the results the filter rejected
+    offset += pagedResults.Count + (int)stats.SkippedResults;
+}
+while (pagedResults.Count > 0);
+```
+</TabItem>
+<TabItem value="RQL" label="RQL">
+```sql
+// The first page: skip 0 retrieved results, return up to 10 results that pass the filter
+from Orders
+filter ShipTo.Country == "USA"
+limit 0, 10
+
+// For the next page, set the offset to: 
+// the current offset + the number of results returned + SkippedResults
+```
+</TabItem>
+</Tabs>
+
+</Panel>
+
+<Panel heading="Filter and projections">
+
+* Use a [projection](../../../client-api/session/querying/how-to-project-query-results.mdx)  
+  to choose which fields to return from results that pass the filter.
+
+* Filtering happens **before the projection**:
+    * For document queries, the condition can reference fields that aren't included in the projected object.
+    * For Map-Reduce queries, the condition is evaluated against the aggregation result before it is projected.
+
+* On a **non-sharded database**, the following query examines up to 50 companies and filters for those located in the USA.  
+  For each match, it returns only `Name` and `Phone`.  
+  `Address.Country` is used by the filter but isn't returned.  
+  This full-collection query does not create an auto-index.
+
+* In C#, the projected results are returned as instances of the following class:
+
+    ```csharp
+    public class CompanyDetails
+    {
+        public string Name { get; set; }
+        public string Phone { get; set; }
+    }
+    ```
+    <br/>
+
+<Tabs groupId='languageSyntax'>
+<TabItem value="Query" label="Query">
+```csharp
+List<CompanyDetails> companies = session
+    .Query<Company>()
+    // Filter by 'Address.Country', examining up to 50 candidate results
+    .Filter(c => c.Address.Country == "USA", limit: 50)
+    // Project only 'Name' and 'Phone' -
+    // 'Address.Country' is not projected, but can still be used in 'Filter'
+    .Select(c => new CompanyDetails
+    {
+        Name = c.Name,
+        Phone = c.Phone
+    })
+    .ToList();
+```
+</TabItem>
+<TabItem value="Query_async" label="Query_async">
+```csharp
+List<CompanyDetails> companies = await asyncSession
+    .Query<Company>()
+    // Filter by 'Address.Country', examining up to 50 candidate results
+    .Filter(c => c.Address.Country == "USA", limit: 50)
+    // Project only 'Name' and 'Phone' -
+    // 'Address.Country' is not projected, but can still be used in 'Filter'
+    .Select(c => new CompanyDetails
+    {
+        Name = c.Name,
+        Phone = c.Phone
+    })
+    .ToListAsync();
+```
+</TabItem>
+<TabItem value="DocumentQuery" label="DocumentQuery">
+```csharp
+List<CompanyDetails> companies = session.Advanced
+    .DocumentQuery<Company>()
+    // Filter by 'Address.Country', examining up to 50 candidate results
+    .Filter(f => f.Equals(c => c.Address.Country, "USA"), limit: 50)
+    // Project the fields defined in 'CompanyDetails' ('Name' and 'Phone')
+    .SelectFields<CompanyDetails>()
+    .ToList();
+```
+</TabItem>
+<TabItem value="DocumentQuery_async" label="DocumentQuery_async">
+```csharp
+List<CompanyDetails> companies = await asyncSession.Advanced
+    .AsyncDocumentQuery<Company>()
+    // Filter by 'Address.Country', examining up to 50 candidate results
+    .Filter(f => f.Equals(c => c.Address.Country, "USA"), limit: 50)
+    // Project the fields defined in 'CompanyDetails' ('Name' and 'Phone')
+    .SelectFields<CompanyDetails>()
+    .ToListAsync();
+```
+</TabItem>
+<TabItem value="RawQuery" label="RawQuery">
+```csharp
+List<CompanyDetails> companies = session.Advanced
+    .RawQuery<CompanyDetails>(@"
+        from Companies
+        filter Address.Country == $country
+        select Name, Phone
+        filter_limit $limit")
+    .AddParameter("country", "USA")
+    .AddParameter("limit", 50)
+    .ToList();
+```
+</TabItem>
+<TabItem value="RawQuery_async" label="RawQuery_async">
+```csharp
+List<CompanyDetails> companies = await asyncSession.Advanced
+    .AsyncRawQuery<CompanyDetails>(@"
+        from Companies
+        filter Address.Country == $country
+        select Name, Phone
+        filter_limit $limit")
+    .AddParameter("country", "USA")
+    .AddParameter("limit", 50)
+    .ToListAsync();
+```
+</TabItem>
+<TabItem value="RQL" label="RQL">
+```sql
+from Companies
+filter Address.Country == "USA"
+select Name, Phone
+filter_limit 50
+```
+</TabItem>
+</Tabs>
+
+</Panel>
+
+<Panel heading="Filter by a related document">
+
+* In RQL, use [`load`](../../../querying/rql/what-is-rql.mdx#load) before `filter`  
+  to load a related document, then reference its fields in the filter condition.
+
+* In C#:
+    * **Query (LINQ)**: use `let` with `RavenQuery.Load` to load the supplier, then apply `Filter`.  
+      These examples project the matching product and extract it from the projection on the client.
+    * **DocumentQuery**: configure the `load` clause with `QueryData.LoadTokens`, then apply `Filter`.
+    * **RawQuery**: express the RQL directly.
+
+* Loading related documents adds work for each examined candidate.  
+  Set a [`Filter` limit](#limit-the-number-of-scanned-results) to cap the number of candidates examined.
+
+* Each product stores its supplier's document ID in `Supplier`.  
+  The following query loads each candidate product's supplier and returns full `Product` documents whose supplier is located in Japan.  
+  The loaded supplier is used to evaluate the filter and isn't returned.  
+  This full-collection query does not create an auto-index.
+
+<Tabs groupId='languageSyntax'>
+<TabItem value="Query" label="Query">
+```csharp
+using Raven.Client.Documents.Queries;
+
+// Load the supplier referenced by each product.
+var query =
+    from p in session.Query<Product>()
+    let s = RavenQuery.Load<Supplier>(p.Supplier)
+    select new { p, s };
+
+var results = query
+    // Filter on the loaded supplier's country.
+    .Filter(x => x.s.Address.Country == "Japan")
+    // Project only the product, using its RQL alias 'p'.
+    .Select(x => new { Product = RavenQuery.Raw<Product>("p") })
+    .ToList();
+
+// Extract the products from the projection.
+List<Product> products = results.Select(x => x.Product).ToList();
+```
+</TabItem>
+<TabItem value="Query_async" label="Query_async">
+```csharp
+using Raven.Client.Documents.Queries;
+
+// Load the supplier referenced by each product.
+var query =
+    from p in asyncSession.Query<Product>()
+    let s = RavenQuery.Load<Supplier>(p.Supplier)
+    select new { p, s };
+
+var results = await query
+    // Filter on the loaded supplier's country.
+    .Filter(x => x.s.Address.Country == "Japan")
+    // Project only the product, using its RQL alias 'p'.
+    .Select(x => new { Product = RavenQuery.Raw<Product>("p") })
+    .ToListAsync();
+
+// Extract the products from the projection.
+List<Product> products = results.Select(x => x.Product).ToList();
+```
+</TabItem>
+<TabItem value="DocumentQuery" label="DocumentQuery">
+```csharp
+using Raven.Client.Documents.Queries;
+using Raven.Client.Documents.Session.Tokens;
+
+// Configure the related supplier load.
+// Empty field lists preserve the full product document as the result.
+var queryData = new QueryData(
+    fields: Array.Empty<string>(),
+    projections: Array.Empty<string>(),
+    fromAlias: "p",
+    loadTokens: new List<LoadToken>
+    {
+        LoadToken.Create("p.Supplier", "s")
+    });
+
+List<Product> products = session.Advanced
+    .DocumentQuery<Product>()
+    .SelectFields<Product>(queryData)
+    // Filter on the loaded supplier's country.
+    .Filter(f => f.Equals("s.Address.Country", "Japan"))
+    .ToList();
+```
+</TabItem>
+<TabItem value="DocumentQuery_async" label="DocumentQuery_async">
+```csharp
+using Raven.Client.Documents.Queries;
+using Raven.Client.Documents.Session.Tokens;
+
+// Configure the related supplier load.
+// Empty field lists preserve the full product document as the result.
+var queryData = new QueryData(
+    fields: Array.Empty<string>(),
+    projections: Array.Empty<string>(),
+    fromAlias: "p",
+    loadTokens: new List<LoadToken>
+    {
+        LoadToken.Create("p.Supplier", "s")
+    });
+
+List<Product> products = await asyncSession.Advanced
+    .AsyncDocumentQuery<Product>()
+    .SelectFields<Product>(queryData)
+    // Filter on the loaded supplier's country.
+    .Filter(f => f.Equals("s.Address.Country", "Japan"))
+    .ToListAsync();
+```
+</TabItem>
+<TabItem value="RawQuery" label="RawQuery">
+```csharp
+List<Product> products = session.Advanced
+    .RawQuery<Product>(@"
+        from Products as p
+        load p.Supplier as s
+        filter s.Address.Country == $country")
+    .AddParameter("country", "Japan")
+    .ToList();
+```
+</TabItem>
+<TabItem value="RawQuery_async" label="RawQuery_async">
+```csharp
+List<Product> products = await asyncSession.Advanced
+    .AsyncRawQuery<Product>(@"
+        from Products as p
+        load p.Supplier as s
+        filter s.Address.Country == $country")
+    .AddParameter("country", "Japan")
+    .ToListAsync();
+```
+</TabItem>
+<TabItem value="RQL" label="RQL">
+```sql
+from Products as p
+load p.Supplier as s
+filter s.Address.Country == "Japan"
+```
+</TabItem>
+</Tabs>
+
+</Panel>
+
+<Panel heading="Filter with a JavaScript function">
+
+* Use RQL's [`declare`](../../../querying/rql/what-is-rql.mdx#declare) keyword to define a JavaScript function and call it from `filter`.  
+  This lets you package filtering logic in a function that executes on the server.  
+  A declared function can also be called from `select`.
+
+* `declare` is an **RQL** feature. Use `RawQuery` or `AsyncRawQuery` to run these queries from C#.
+
+* In the examples below, the function runs for each candidate examined by the filter.  
+  When its return value is used directly as the filter condition, it must return the boolean value `true` for that candidate to be included.
+
+---
+    
+<ContentFrame> 
+
+### Pass only the document
+
+* The following function receives only the product document and returns `true` when `UnitsInStock < ReorderLevel`.  
+  The query returns full `Product` documents that meet this condition; no query parameter is needed.  
+  An ordinary `where` comparison cannot compare one document field with another.
+
+<Tabs groupId='languageSyntax'>
+<TabItem value="RawQuery" label="RawQuery">
+```csharp
+List<Product> products = session.Advanced
+    .RawQuery<Product>(@"
+        declare function needsReorder(product) {
+            // Compare two fields of the same document
+            return product.UnitsInStock < product.ReorderLevel;
+        }
+
+        from Products as p
+        filter needsReorder(p)")
+    .ToList();
+```
+</TabItem>
+<TabItem value="RawQuery_async" label="RawQuery_async">
+```csharp
+List<Product> products = await asyncSession.Advanced
+    .AsyncRawQuery<Product>(@"
+        declare function needsReorder(product) {
+            // Compare two fields of the same document
+            return product.UnitsInStock < product.ReorderLevel;
+        }
+
+        from Products as p
+        filter needsReorder(p)")
+    .ToListAsync();
+```
+</TabItem>
+<TabItem value="RQL" label="RQL">
+```sql
+declare function needsReorder(product) {
+    // Compare two fields of the same document
+    return product.UnitsInStock < product.ReorderLevel;
+}
+
+from Products as p
+filter needsReorder(p)
+```
+</TabItem>
+</Tabs>
+
+</ContentFrame>   
+<ContentFrame>
+
+### Pass a query parameter as an argument
+
+* The following query returns employees whose `Title` starts with `"Sales"`, such as _"Sales Representative"_ or _"Sales Manager"_.  
+  The comparison uses JavaScript's case-sensitive `startsWith` method.
+
+* In C#, `.AddParameter("prefix", "Sales")` supplies the query parameter `$prefix`.  
+  The call `titleStartsWith(e, $prefix)` passes that value to the function's `prefix` parameter:
+
+<Tabs groupId='languageSyntax'>
+<TabItem value="RawQuery" label="RawQuery">
+```csharp
+List<Employee> employees = session.Advanced
+    .RawQuery<Employee>(@"
+        declare function titleStartsWith(employee, prefix) {
+            // String.prototype.startsWith is case-sensitive
+            return employee.Title.startsWith(prefix);
+        }
+
+        from Employees as e
+        filter titleStartsWith(e, $prefix)")
+    .AddParameter("prefix", "Sales")
+    .ToList();
+```
+</TabItem>
+<TabItem value="RawQuery_async" label="RawQuery_async">
+```csharp
+List<Employee> employees = await asyncSession.Advanced
+    .AsyncRawQuery<Employee>(@"
+        declare function titleStartsWith(employee, prefix) {
+            // String.prototype.startsWith is case-sensitive
+            return employee.Title.startsWith(prefix);
+        }
+
+        from Employees as e
+        filter titleStartsWith(e, $prefix)")
+    .AddParameter("prefix", "Sales")
+    .ToListAsync();
+```
+</TabItem>
+<TabItem value="RQL" label="RQL">
+```sql
+declare function titleStartsWith(employee, prefix) {
+    // String.prototype.startsWith is case-sensitive
+    return employee.Title.startsWith(prefix);
+}
+
+from Employees as e
+filter titleStartsWith(e, $prefix)
+```
+
+**Query parameters:**
+
+```json
+{ "prefix": "Sales" }
+```
+</TabItem>
+</Tabs>
+
+</ContentFrame>   
+<ContentFrame>
+
+### Access a query parameter inside the function
+
+* The following query also returns employees whose `Title` starts with `"Sales"`, using a case-sensitive comparison.  
+  The function reads `$prefix` directly inside its body, so only the employee document is passed as an argument.  
+  In C#, `.AddParameter("prefix", "Sales")` is still required to supply the query parameter's value:
+
+<Tabs groupId='languageSyntax'>
+<TabItem value="RawQuery" label="RawQuery">
+```csharp
+List<Employee> employees = session.Advanced
+    .RawQuery<Employee>(@"
+        declare function titleStartsWithPrefix(employee) {
+            // '$prefix' is the query parameter, accessed directly
+            return employee.Title.startsWith($prefix);
+        }
+
+        from Employees as e
+        filter titleStartsWithPrefix(e)")
+    .AddParameter("prefix", "Sales")
+    .ToList();
+```
+</TabItem>
+<TabItem value="RawQuery_async" label="RawQuery_async">
+```csharp
+List<Employee> employees = await asyncSession.Advanced
+    .AsyncRawQuery<Employee>(@"
+        declare function titleStartsWithPrefix(employee) {
+            // '$prefix' is the query parameter, accessed directly
+            return employee.Title.startsWith($prefix);
+        }
+
+        from Employees as e
+        filter titleStartsWithPrefix(e)")
+    .AddParameter("prefix", "Sales")
+    .ToListAsync();
+```
+</TabItem>
+<TabItem value="RQL" label="RQL">
+```sql
+declare function titleStartsWithPrefix(employee) {
+    // '$prefix' is the query parameter, accessed directly
+    return employee.Title.startsWith($prefix);
+}
+
+from Employees as e
+filter titleStartsWithPrefix(e)
+```
+
+**Query parameters:**
+
+```json
+{ "prefix": "Sales" }
+```
+</TabItem>
+</Tabs>
+ 
+</ContentFrame>    
+</Panel>
+
+<Panel heading="Filter and sharding">
+
+### Document queries
+
+* Each shard applies `filter` to its own candidates.  
+  When a `Filter` limit (`filter_limit` in RQL) is set, it caps how many candidates **each shard** examines.  
+  The total number examined across all shards can therefore exceed that limit.
+
+* The **orchestrator** (the node coordinating the query) combines the shard results.  
+  When a `Filter` limit is set, it returns at most the smaller of that limit and the page size.
+
+* **Query statistics and paging**:
+    * `ScannedResults` is the sum of the candidates examined by the shards.
+    * `SkippedResults` is reported as 0 and does not include candidates rejected by the filter on the shards.  
+      Therefore, the next-offset formula in [Filter and paging](#filter-and-paging) cannot be used for these queries.
+
+* **Example**: Assume the first 10 candidate orders on each of three shards match `Freight >= 0`.  
+  With `from Orders filter Freight >= 0 filter_limit 10`, each shard examines 10 orders.  
+  The combined `ScannedResults` is 30, while the orchestrator returns only 10 results.
+
+### Map-Reduce queries
+
+* For queries against static Map-Reduce indexes and dynamic `group by` queries,  
+  the orchestrator combines and re-reduces the shard results **before applying `filter`**.  
+  The `Filter` limit applies to the combined aggregation results examined at this stage.
+
+* Use `filter` for conditions on **computed aggregation fields**, such as `Count`.  
+  A `where` condition is applied at the shards and can discard partial values before they are combined.
+
+* **Example**: In the [Map-Reduce example](#filter-with-a-map-reduce-index-query),  
+  a company with 15 orders on each of two shards has a combined `Count` of 30.  
+  `filter Count > 20` includes that combined result.  
+  `where Count > 20` discards both partial results before they can be combined.
+
+* Use `where` on a **reduce-key (grouping) field**, such as `Company`, to narrow the shard results first.
+
+* Learn more in [Sharding: Filtering query results](../../../sharding/querying.mdx#filtering-query-results).
+
+</Panel>
+
+<Panel heading="Supported operators and limitations">
+
+### Supported in RQL
+
+The following expressions can be used in an RQL `filter` clause:
+
+| Expression | Supported syntax |
+|------------|------------------|
+| Comparisons | `=`, `==`, `!=`, `<>`, `<`, `<=`, `>`, `>=` |
+| Logical expressions | `and`, `or`, and negation with `and not` or `or not`; parentheses for grouping |
+| Membership | `in` |
+| Built-in methods | `startsWith()`, `endsWith()`, `regex()`, `exists()` |
+| Related document fields | Fields from [documents loaded with `load`](#filter-by-a-related-document) |
+| Custom logic | Calls to [JavaScript functions defined with `declare`](#filter-with-a-javascript-function) |
+
+**Syntax and comparison notes:**
+
+* **Negating the entire condition**: Use `true and not (...)`.  
+  Starting the condition directly with `not` can return no results without reporting an error:
+  ```sql
+  from Companies
+  filter true and not (Address.Country == "USA")
+  ```
+
+* **String comparisons**: RQL's `startsWith()` and `endsWith()` helpers are **case-insensitive**.  
+  String equality in `filter` and JavaScript's native `someString.startsWith(...)` / `endsWith(...)` methods are **case-sensitive**.  
+  For other comparison details, see [How exploration queries work](#how-exploration-queries-work).
+
+### LINQ and DocumentQuery API limitations
+
+* The LINQ, DocumentQuery, and AsyncDocumentQuery `Filter` APIs support comparisons and logical expressions.  
+  DocumentQuery and AsyncDocumentQuery use the `IFilterFactory` methods listed in [Syntax](#syntax).
+
+* These APIs do not expose all the RQL features listed above.  
+  For the full set, use `RawQuery` or `AsyncRawQuery`.
+
+* Query methods such as `StartsWith`, `In`, `Search`, `ContainsAny`, and `ContainsAll` are not supported inside LINQ `Filter`.  
+  Attempting to use them there throws an `InvalidQueryException`.
+
+* Calling LINQ `Filter` more than once combines the conditions with `and`.
+
+### Unsupported filter expressions
+
+These restrictions also apply when using `RawQuery` or `AsyncRawQuery`:
+
+* **Index-based methods**: `search()`, `boost()`, `lucene()`, `exact()`, `moreLikeThis()`, spatial methods, and vector search cannot be used inside a filter condition.
+
+* **`between`**: This operator is not supported in a filter condition and can return no results without reporting an error.  
+  Use two comparisons instead:
+  ```sql
+  from Products
+  filter PricePerUnit >= 10 and PricePerUnit <= 20
+  ```
+
+* **`now()` and `today()`**: These functions cannot be used inside a filter condition.  
+  Compare against an explicit date-time value instead.  
+  See [Filter by date and time: Restrictions](../../../querying/filtering-query-results/filter-by-date-and-time.mdx#restrictions).
+
+### Query and operation restrictions
+
+The following queries and operations cannot include a `filter` clause:
+
+* **Faceted search**: A [faceted search](../../../indexes/querying/faceted-search.mdx) query with `filter` throws an `InvalidQueryException`.
+
+* **Vector search**: A query that uses `vector.search()` in `where` cannot also include `filter`.
+
+* **Patch by query and delete by query**: Use `where` to select documents for
+  [patch by query](../../../documents/patching-documents/patch-multiple-documents/client-api.mdx)
+  and [delete by query](../../../client-api/operations/common/delete-by-query.mdx) operations.
+
+</Panel>
+
+<Panel heading="Syntax">
+
+* `Filter` adds a condition to the query. The query executes when results are requested, for example with `ToList()` or `ToListAsync()`.
+
+* For the RQL clause order, see the outline in [How exploration queries work](#how-exploration-queries-work).
+
+### LINQ
+
+* `Filter` is an extension method in `Raven.Client.Documents.LinqExtensions`:
+
+```csharp
+public static IRavenQueryable<T> Filter<T>(
+    this IRavenQueryable<T> source,
+    Expression<Func<T, bool>> predicate,
+    int limit = int.MaxValue);
+
+public static IRavenQueryable<T> Filter<T>(
+    this IQueryable<T> source,
+    Expression<Func<T, bool>> predicate,
+    int limit = int.MaxValue);
+```
+
+### DocumentQuery and AsyncDocumentQuery
+
+```csharp
+IDocumentQuery<T> Filter(Action<IFilterFactory<T>> builder, int limit = int.MaxValue);
+
+IAsyncDocumentQuery<T> Filter(Action<IFilterFactory<T>> builder, int limit = int.MaxValue);
+```
+<br/>
+                        
+* The `builder` action runs on the client and uses `IFilterFactory<T>` (in `Raven.Client.Documents.Queries`) to construct the filter condition.  
+  The server evaluates the generated condition for each examined candidate.  
+  The interface below shows the comparison, logical, and grouping methods:
+
+```csharp
+public interface IFilterFactory<T>
+{
+    // Equality
+    IFilterFactory<T> Equals(string fieldName, object value);
+    IFilterFactory<T> Equals<TValue>(Expression<Func<T, object>> propertySelector, TValue value);
+
+    IFilterFactory<T> NotEquals(string fieldName, object value);
+    IFilterFactory<T> NotEquals<TValue>(Expression<Func<T, object>> propertySelector, TValue value);
+
+    // Comparison
+    IFilterFactory<T> GreaterThan(string fieldName, object value);
+    IFilterFactory<T> GreaterThan<TValue>(Expression<Func<T, object>> propertySelector, TValue value);
+
+    IFilterFactory<T> GreaterThanOrEqual(string fieldName, object value);
+    IFilterFactory<T> GreaterThanOrEqual<TValue>(Expression<Func<T, object>> propertySelector, TValue value);
+
+    IFilterFactory<T> LessThan(string fieldName, object value);
+    IFilterFactory<T> LessThan<TValue>(Expression<Func<T, object>> propertySelector, TValue value);
+
+    IFilterFactory<T> LessThanOrEqual(string fieldName, object value);
+    IFilterFactory<T> LessThanOrEqual<TValue>(Expression<Func<T, object>> propertySelector, TValue value);
+
+    // Logical operators and grouping
+    IFilterFactory<T> AndAlso();
+    IFilterFactory<T> OrElse();
+    IFilterFactory<T> Not();
+    IFilterFactory<T> OpenSubclause();
+    IFilterFactory<T> CloseSubclause();
+
+    // Overloads that accept 'MethodCall' and 'WhereParams' are omitted for brevity
+}
+```
+
+### Parameters
+
+| Parameter            | Type                                   | Description                                                                                                                                                                                                                                                                                                                                                                                                                     |
+|----------------------|----------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **source**           | `IRavenQueryable<T>` / `IQueryable<T>` | RavenDB LINQ query to which the filter is added.                                                                                                                                                                                                                                                                                                                                                                                |
+| **predicate**        | `Expression<Func<T, bool>>`            | LINQ condition evaluated on the server for each examined candidate.                                                                                                                                                                                                                                                                                                                                                             |
+| **builder**          | `Action<IFilterFactory<T>>`            | Constructs the filter condition for DocumentQuery or AsyncDocumentQuery.                                                                                                                                                                                                                                                                                                                                                        |
+| **limit**            | `int`                                  | Maximum number of candidate results examined, including rejected candidates. **This is not the maximum number of results returned.**<br/>Must be greater than 0. Default: `int.MaxValue` (no explicit scan limit). Scanning can still stop when the page is full or candidates are exhausted.<br/>Corresponds to RQL's `filter_limit`. See [Scan limit](#limit-the-number-of-scanned-results) and [Paging](#filter-and-paging). |
+| **fieldName**        | `string`                               | Document field or reduce result field to compare. Use a dotted path for nested fields, such as `"Address.Country"`.                                                                                                                                                                                                                                                                                                             |
+| **propertySelector** | `Expression<Func<T, object>>`          | Lambda expression selecting the field to compare.                                                                                                                                                                                                                                                                                                                                                                               |
+| **value**            | `object` / `TValue`                    | Value to compare against.                                                                                                                                                                                                                                                                                                                                                                                                       |
+
+</Panel>
