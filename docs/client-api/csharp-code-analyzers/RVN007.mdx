@@ -1,21 +1,22 @@
 ---
-title: "RVN007 — Query field not present in the index projection"
+title: "RVN007 - Query field not present in the index projection"
 sidebar_label: RVN007
 sidebar_position: 7
 ---
 
-# RVN007 — Query field not present in the index projection
-
-- **Severity**: Info (default)
-- **Code fix**: No
+- **Default severity**: `Info`
+- **Automated code fix**: No
 
 ## Description
 
-When querying a specific index (via `session.Query<T, TIndex>()`), all fields referenced in `Where`, `OrderBy`, and `Search` lambdas should match the fields projected by the index's `Map` expression. A field that is not part of the index projection cannot be searched or sorted by the server, and the query will return no results for that field.
+When querying a specific index (via `session.Query<T, TIndex>()`), all fields referenced in `Where`, `OrderBy`, and `Search` lambdas should match the fields projected by the index's `Map` expression. 
+A field that is not part of the index projection cannot be searched or sorted by the server, and the query will return no results for that field.
 
 ## Trigger condition
 
-The analyzer fires when a `Where`, `OrderBy`, `OrderByDescending`, `ThenBy`, `ThenByDescending`, or `Search` lambda is found on an `IRavenQueryable<T>`, the query was created with an explicit index type argument (e.g., `Query<Order, MyIndex>()`), and a member referenced in the lambda does not appear in the set of fields extracted from the index's `Map` expression. The index class must be available in the same compilation for the field extraction to succeed; if the index is in a separate assembly the check is skipped conservatively.
+The analyzer fires when a `Where`, `OrderBy`, `OrderByDescending`, `ThenBy`, `ThenByDescending`, or `Search` lambda is found on an `IRavenQueryable<T>`, 
+the query was created with an explicit index type argument (e.g., `Query<Order, MyIndex>()`), and a member referenced in the lambda does not appear in the set of fields extracted from the index's `Map` expression. 
+The index class must be available in the same compilation for the field extraction to succeed; if the index is in a separate assembly the check is skipped conservatively.
 
 ## What to do
 

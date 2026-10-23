@@ -1,29 +1,30 @@
 ---
-title: "RVN015 — Correlated conditions over a nested collection in a dynamic query"
+title: "RVN015 - Correlated conditions over a nested collection in a dynamic query"
 sidebar_label: RVN015
 sidebar_position: 15
 ---
 
-# RVN015 — Correlated conditions over a nested collection in a dynamic query
-
-- **Severity**: Info (default)
-- **Code fix**: No
+- **Default severity**: `Info`
+- **Automated code fix**: No
 
 ## Description
 
-A dynamic query (`session.Query<T>()` with no index specified) is served by an **auto index**. The auto index flattens a nested collection into one multi-valued field per member, e.g. `Members[].UserId` and `Members[].Role`. A predicate such as `p.Members.Any(m => m.UserId == userId && m.Role == Role.Contributor)` therefore becomes:
+A dynamic query (`session.Query<T>()` with no index specified) is served by an **auto index**. The auto index flattens a nested collection into one multi-valued field per member, 
+e.g. `Members[].UserId` and `Members[].Role`. A predicate such as `p.Members.Any(m => m.UserId == userId && m.Role == Role.Contributor)` therefore becomes:
 
 ```sql
 where Members[].UserId = $p0 and Members[].Role = $p1
 ```
 
-Each condition is matched **independently**: a document matches when *some* member has the user id and *some* member (possibly a different one) has the role. The query returns documents where **no single element satisfies both conditions**, which is rarely what the code intends.
+Each condition is matched **independently**: a document matches when *some* member has the user id and *some* member (possibly a different one) has the role. 
+The query returns documents where **no single element satisfies both conditions**, which is rarely what the code intends.
 
 The server never creates fan-out auto indexes, so per-element correlation requires a **static index** whose map emits one entry per element.
 
 ## Trigger condition
 
-The analyzer fires when a `Where` predicate of a dynamic query calls `Any` or `All` on a collection reachable from the queried document, and the lambda joins **two or more conditions on the element** with `&&`. Both the method-chain form and the query-expression form are detected. Nested collections are checked at every level, so `Members.Any(m => m.UserId == id && m.Permissions.Any(p => p.Scope == scope && p.Granted))` reports once for `Members` and once for `Permissions`.
+The analyzer fires when a `Where` predicate of a dynamic query calls `Any` or `All` on a collection reachable from the queried document, 
+and the lambda joins **two or more conditions on the element** with `&&`. Both the method-chain form and the query-expression form are detected. Nested collections are checked at every level, so `Members.Any(m => m.UserId == id && m.Permissions.Any(p => p.Scope == scope && p.Granted))` reports once for `Members` and once for `Permissions`.
 
 ## What to do
 

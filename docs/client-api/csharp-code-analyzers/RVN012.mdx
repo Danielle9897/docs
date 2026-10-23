@@ -1,17 +1,16 @@
 ---
-title: "RVN012 — Batch independent session operations using the lazy API"
+title: "RVN012 - Batch independent session operations using the lazy API"
 sidebar_label: RVN012
 sidebar_position: 12
 ---
 
-# RVN012 — Batch independent session operations using the lazy API
-
-- **Severity**: Info (default)
-- **Code fix**: Yes
+- **Default severity**: `Info`
+- **Automated code fix**: Yes
 
 ## Description
 
-Each eager `Load` or materializing query (`ToList`, `First`, `Single`, etc.) sends a separate HTTP request to the RavenDB server. When a method contains two or more independent operations on the same session, they can be registered as lazy and executed together in a single **multi-get** request, reducing network round-trips and latency.
+Each eager `Load` or materializing query (`ToList`, `First`, `Single`, etc.) sends a separate HTTP request to the RavenDB server. 
+When a method contains two or more independent operations on the same session, they can be registered as lazy and executed together in a single **multi-get** request, reducing network round-trips and latency.
 
 An operation is considered **independent** when its input (the document ID for `Load`, the query definition for a query) does not depend on the result of another operation in the same method.
 
@@ -26,7 +25,8 @@ The analyzer fires when, inside a single method body (excluding nested lambdas a
 
 ## What to do
 
-Convert the eager calls to their lazy equivalents, then call `session.Advanced.Eagerly.ExecuteAllPendingLazyOperations()` (or the async variant) once to trigger the batch. The automated code fix performs the complete transformation when all flagged statements are consecutive and refer to the same session.
+Convert the eager calls to their lazy equivalents, then call `session.Advanced.Eagerly.ExecuteAllPendingLazyOperations()` (or the async variant) once to trigger the batch. 
+The automated code fix performs the complete transformation when all flagged statements are consecutive and refer to the same session.
 
 ### Before (triggers RVN012)
 
@@ -70,4 +70,6 @@ var summary = lazySummary.Value.ToList();
 
 ## Code fix details
 
-The fix rewrites all flagged consecutive statements: replaces each `Load` with `session.Advanced.Lazily.Load[Async]<T>(id)`, replaces each materializing query call with `query.Lazily()`, inserts `ExecuteAllPendingLazyOperations[Async]()` after the last lazy registration, then replaces each original variable declaration with `.Value`. The fix bails out entirely if any statement cannot be safely rewritten, to avoid partial transformations.
+The fix rewrites all flagged consecutive statements: replaces each `Load` with `session.Advanced.Lazily.Load[Async]<T>(id)`, 
+replaces each materializing query call with `query.Lazily()`, inserts `ExecuteAllPendingLazyOperations[Async]()` after the last lazy registration, then replaces each original variable declaration with `.Value`. 
+The fix bails out entirely if any statement cannot be safely rewritten, to avoid partial transformations.

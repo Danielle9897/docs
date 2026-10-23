@@ -1,26 +1,57 @@
 ---
-title: "RVN001 — Index Map or Reduce assigned outside constructor"
+title: "RVN001 - Index Map or Reduce assigned outside constructor"
 sidebar_label: RVN001
 sidebar_position: 1
 ---
 
-# RVN001 — Index Map or Reduce assigned outside constructor
+import Admonition from '@theme/Admonition';
+import Panel from "@site/src/components/Panel";
 
-- **Severity**: Info (default)
-- **Code fix**: No
+<Admonition type="note" title="">
 
-## Description
+* **RVN001** reports assignments to an index's `Map` or `Reduce` property inside a method instead of directly in the constructor.
 
-RavenDB reads the `Map` and `Reduce` expression trees during index registration, which happens when the index class constructor runs. Assigning `Map` or `Reduce` in a regular method, even one called from the constructor, means the assignment may never execute (e.g., when the method is only called conditionally), resulting in the index being deployed without a definition.
+* **Default severity**: `Info`  
+  **Automated code fix**: No
 
-## Trigger condition
+* In this article:
+   * [Description](#description)
+   * [Trigger condition](#trigger-condition)
+   * [How to resolve](#how-to-resolve)
+      * [Before (triggers RVN001)](#before-triggers-rvn001)
+      * [After (correct)](#after-correct)
+   * [See also](#see-also)
 
-The analyzer fires when an assignment to `Map` or `Reduce` (the properties defined on `AbstractIndexCreationTask` and its variants) appears inside a regular `MethodDeclarationSyntax` rather than inside a constructor body. The check is semantic: it confirms the target identifier resolves to the actual `Map`/`Reduce` field or property on an index base class before reporting.
+</Admonition>
 
-## What to do
+<Panel heading="Description">
 
-Move the `Map` and `Reduce` for map-reduce indexes assignment into the constructor body.
+The RavenDB client builds the index definition from the `Map` and `Reduce` expressions when the index is deployed.  
+If these expressions are assigned in a separate method, that method may not run before the definition is built,  
+for example if it is called conditionally or not at all.
+    
+If `Map` is still unset when the definition is built, the client throws `InvalidOperationException`.  
+If `Reduce` is unset, the resulting definition is map-only.
 
+</Panel>
+
+<Panel heading="Trigger condition">
+
+The analyzer reports any assignment to an index's `Map` or `Reduce` property inside a method of the index class rather than in a constructor.
+It does not trace calls, so it also fires when the method is always called from the constructor,  
+or when a method reassigns a `Map` the constructor already set. Abstract index classes are checked too.
+
+This rule does not report assignments to local variables named `Map` or `Reduce`,  
+or calls to `AddMap` or `AddMapForAll` inside methods.
+
+</Panel>
+
+<Panel heading="How to resolve">
+
+Assign `Map` (and `Reduce`, for map-reduce indexes) directly in the constructor body.
+
+---
+    
 ### Before (triggers RVN001)
 
 ```csharp
@@ -28,17 +59,19 @@ public class OrdersByCompany : AbstractIndexCreationTask<Order>
 {
     public void Configure()
     {
-        Map = orders => from o in orders
+        // Triggers RVN001: assigned in a method, not in the constructor
+        Map = orders => from o in orders 
                         select new { o.Company, o.Employee };
     }
 
     public OrdersByCompany()
     {
-        Configure(); // assignment happens in a method, not directly in ctor
+        Configure();
     }
 }
 ```
-
+<br/>
+    
 ### After (correct)
 
 ```csharp
@@ -52,7 +85,14 @@ public class OrdersByCompany : AbstractIndexCreationTask<Order>
 }
 ```
 
-## See also
+</Panel>
 
-- [RVN004](./RVN004.mdx) — fires when no constructor assigns `Map` at all.
-- [RVN005](./RVN005.mdx) — same concept for multi-map indexes missing `AddMap`.
+<Panel heading="See also">
+
+* [RVN004](./RVN004.mdx)  
+  Fires when no constructor sets `Map`, directly or through a method it calls.
+    
+* [RVN005](./RVN005.mdx) - The multi-map equivalent of RVN004:  
+  Fires when no constructor registers a map through `AddMap` or `AddMapForAll`, directly or through a method it calls.
+
+</Panel>

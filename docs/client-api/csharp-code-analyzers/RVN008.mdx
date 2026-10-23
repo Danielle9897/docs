@@ -1,17 +1,16 @@
 ---
-title: "RVN008 — Projected field not retrievable under the applied ProjectionBehavior"
+title: "RVN008 - Projected field not retrievable under the applied ProjectionBehavior"
 sidebar_label: RVN008
 sidebar_position: 8
 ---
 
-# RVN008 — Projected field not retrievable under the applied ProjectionBehavior
-
-- **Severity**: Info (default)
-- **Code fix**: No
+- **Default severity**: `Info`
+- **Automated code fix**: No
 
 ## Description
 
-RavenDB projections retrieve each field from the stored index entry first, then fall back to the source document if the field is not stored. If a field is absent from **both** the stored index entry and the source document type, the projected value will be `null` or missing at runtime. Under `ProjectionBehavior.FromIndex` or `ProjectionBehavior.FromIndexOrThrow` the fallback to the source document is disabled, making unstored fields silently empty or a hard error respectively.
+RavenDB projections retrieve each field from the stored index entry first, then fall back to the source document if the field is not stored. 
+If a field is absent from **both** the stored index entry and the source document type, the projected value will be `null` or missing at runtime. Under `ProjectionBehavior.FromIndex` or `ProjectionBehavior.FromIndexOrThrow` the fallback to the source document is disabled, making unstored fields silently empty or a hard error respectively.
 
 ## Analyzed projection forms
 
@@ -23,7 +22,8 @@ Constructor-call projections (`new MyDto(x.Field1, x.Field2)`) and identity sele
 
 ## Trigger condition
 
-The analyzer fires when a projection is used on an `IRavenQueryable<T>` with an explicit index type, a projected member is neither stored in the index nor a member of the source document type, and the applicable `ProjectionBehavior` would not silently fall through (or the behavior is `Default` and the field would simply be `null`).
+The analyzer fires when a projection is used on an `IRavenQueryable<T>` with an explicit index type, 
+a projected member is neither stored in the index nor a member of the source document type, and the applicable `ProjectionBehavior` would not silently fall through (or the behavior is `Default` and the field would simply be `null`).
 
 ## What to do
 

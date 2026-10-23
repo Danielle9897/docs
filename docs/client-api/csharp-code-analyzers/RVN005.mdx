@@ -1,34 +1,74 @@
 ---
-title: "RVN005 — Multi-map index has no AddMap call in any constructor"
+title: "RVN005 - Multi-map index has no AddMap call in any constructor"
 sidebar_label: RVN005
 sidebar_position: 5
 ---
 
-# RVN005 — Multi-map index has no AddMap call in any constructor
+import Admonition from '@theme/Admonition';
+import Panel from "@site/src/components/Panel";
 
-- **Severity**: Info (default)
-- **Code fix**: No
+<Admonition type="note" title="">
 
-## Description
+* **RVN005** reports multi-map index classes that have no `AddMap` or `AddMapForAll` calls reachable from a constructor.
 
-Every class that inherits from `AbstractMultiMapIndexCreationTask` (or the time-series and counters variants: `AbstractMultiMapTimeSeriesIndexCreationTask`, `AbstractMultiMapCountersIndexCreationTask`) must call `AddMap<TSource>(…)` at least once in its constructor. Without at least one `AddMap`, the index has no definition and will fail when deployed to the server.
+* **Default severity**: `Info`  
+  **Automated code fix**: No
 
-## Trigger condition
+* In this article:
+   * [Description](#description)
+   * [Trigger condition](#trigger-condition)
+   * [How to resolve](#how-to-resolve)
+      * [Before (triggers RVN005)](#before-triggers-rvn005)
+      * [After (correct)](#after-correct)
+   * [See also](#see-also)
 
-The analyzer fires when a class whose base-type chain includes a multi-map index base class has no constructor that calls `AddMap` (or `AddMapForAll`) with the method resolving to the one defined on the multi-map base class.
+</Admonition>
 
-## What to do
+<Panel heading="Description">
 
-Add a constructor that calls `AddMap<TSource>(…)` for each document type the index should map.
+Every non-abstract class that derives from `AbstractMultiMapIndexCreationTask`
+(or the time-series and counters variants: `AbstractMultiMapTimeSeriesIndexCreationTask`, `AbstractMultiMapCountersIndexCreationTask`)
+and uses the standard `CreateIndexDefinition()` implementation must register at least one map with `AddMap` or `AddMapForAll` before the index definition is built.
+
+Without a map, the index definition contains no maps, and deploying the index fails with "Index definition contains no Maps".
+
+</Panel>
+
+<Panel heading="Trigger condition">
+
+The analyzer fires when no `AddMap` or `AddMapForAll` call is reachable from any constructor of the index class or its base classes,
+including a base class from a referenced project.
+A call found in one constructor or a method it calls is enough to suppress RVN005.
+
+RVN005 still fires when maps are registered only in a method that is not reachable from a constructor,
+even if that method runs before the index definition is built.
+
+The rule does not verify that every execution path registers a map or that `AddMapForAll` finds any concrete types.
+
+The following are not reported:
+  - Abstract index classes. Their subclasses are checked instead.
+  - Indexes that override `CreateIndexDefinition()`.
+  - Generic index classes, and index classes that are private or protected or nested in a private or protected class.
+  - Indexes whose base classes cannot be analyzed, for example a base class from a compiled assembly without generated index metadata.
+
+</Panel>
+
+<Panel heading="How to resolve">
+
+Add a constructor (or update the existing one) that calls `AddMap<TSource>(…)` for each document type the index should map.
+Alternatively, use `AddMapForAll<TBase>(…)` to register maps for concrete types assignable to `TBase` in the assembly that defines `TBase`.
+
+---
 
 ### Before (triggers RVN005)
 
 ```csharp
 public class Animals_ByName : AbstractMultiMapIndexCreationTask
 {
-    // No AddMap call anywhere — RVN005 fires on the class name
+    // No AddMap call anywhere - RVN005 fires on the class name
 }
 ```
+<br/>
 
 ### After (correct)
 
@@ -43,7 +83,15 @@ public class Animals_ByName : AbstractMultiMapIndexCreationTask
 }
 ```
 
-## See also
+</Panel>
 
-- [RVN004](./RVN004.mdx) — equivalent rule for regular single-map indexes.
-- [RVN006](./RVN006.mdx) — fires when a multi-map index has only one `AddMap` call.
+<Panel heading="See also">
+
+* [RVN004](./RVN004.mdx)  
+  Equivalent rule for regular single-map indexes.
+    
+* [RVN006](./RVN006.mdx)  
+  Suggests a regular index when only one `AddMap` call is found.  
+  Calls inside loops and indexes using `AddMapForAll` are excluded.
+
+</Panel>

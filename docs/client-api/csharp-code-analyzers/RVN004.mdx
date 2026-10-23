@@ -1,26 +1,64 @@
 ---
-title: "RVN004 — AbstractIndexCreationTask subclass is missing a Map assignment"
+title: "RVN004 - AbstractIndexCreationTask subclass is missing a Map assignment"
 sidebar_label: RVN004
 sidebar_position: 4
 ---
 
-# RVN004 — AbstractIndexCreationTask subclass is missing a Map assignment
+import Admonition from '@theme/Admonition';
+import Panel from "@site/src/components/Panel";
 
-- **Severity**: Info (default)
-- **Code fix**: No
+<Admonition type="note" title="">
 
-## Description
+* **RVN004** reports a missing `Map` assignment in a RavenDB index class.
 
-Every class that inherits from `AbstractIndexCreationTask<TDocument>` (or `AbstractGenericIndexCreationTask`) must assign the `Map` property in its constructor. Without a `Map` expression, the index has no definition and will fail when deployed to the server.
+* **Default severity**: `Info`  
+  **Automated code fix**: No
 
-## Trigger condition
+* In this article:
+   * [Description](#description)
+   * [Trigger condition](#trigger-condition)
+   * [How to resolve](#how-to-resolve)
+      * [Before (triggers RVN004)](#before-triggers-rvn004)
+      * [After (correct)](#after-correct)
+   * [See also](#see-also)
 
-The analyzer fires when a class has a base-type chain that includes `AbstractIndexCreationTask` or `AbstractGenericIndexCreationTask`, and none of its constructors contains an assignment to the `Map` property that resolves to the field or property defined on the index base class. JavaScript indexes (`AbstractJavaScriptIndexCreationTask`) are excluded because they express their maps differently.
+</Admonition>
 
-## What to do
+<Panel heading="Description">
+
+Indexes that derive from `AbstractIndexCreationTask<TDocument>` or `AbstractIndexCreationTask<TDocument, TReduceResult>`
+and use the standard `CreateIndexDefinition()` implementation must assign `Map` before the client builds the index definition.
+    
+Without a `Map`, the client throws `InvalidOperationException` ("Map is required to generate an index…") when it builds the index definition,
+so the index is never deployed.
+
+</Panel>
+
+<Panel heading="Trigger condition">
+
+The analyzer fires when no `Map` assignment is reachable from any constructor of the index class or its base classes,  
+including a base class from a referenced project.
+
+An assignment found in one constructor or a method it calls is enough to suppress RVN004.  
+The rule does not verify that every constructor or execution path assigns `Map`.
+
+The following are not reported:
+
+- Abstract index classes. Their subclasses are checked instead.
+- Indexes that override `CreateIndexDefinition()`.
+- Multi-map indexes. See [RVN005](./RVN005.mdx).
+- JavaScript indexes (`AbstractJavaScriptIndexCreationTask`), which define their maps as strings.
+- Generic index classes, and index classes that are private or protected or nested in a private or protected class.
+- Indexes whose base classes cannot be analyzed, for example a base class from a compiled assembly without generated index metadata.
+
+</Panel>
+
+<Panel heading="How to resolve">
 
 Add a constructor (or update the existing one) that assigns the `Map` property.
 
+---
+    
 ### Before (triggers RVN004)
 
 ```csharp
@@ -29,7 +67,8 @@ public class Orders_ByCompany : AbstractIndexCreationTask<Order>
     // No constructor — Map is never assigned; RVN004 fires on the class name
 }
 ```
-
+<br/>
+        
 ### After (correct)
 
 ```csharp
@@ -43,7 +82,15 @@ public class Orders_ByCompany : AbstractIndexCreationTask<Order>
 }
 ```
 
-## See also
+</Panel>
 
-- [RVN001](./RVN001.mdx) — fires when `Map` is assigned in a method rather than a constructor.
-- [RVN005](./RVN005.mdx) — equivalent rule for multi-map indexes.
+<Panel heading="See also">
+
+* [RVN001](./RVN001.mdx)  
+  Fires when `Map` is assigned in a method rather than a constructor.  
+  Both rules fire when `Map` is assigned only in a method the constructor never calls.
+        
+* [RVN005](./RVN005.mdx)  
+  Equivalent rule for multi-map indexes.
+
+</Panel>

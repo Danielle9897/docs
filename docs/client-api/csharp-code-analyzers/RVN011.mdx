@@ -1,13 +1,11 @@
 ---
-title: "RVN011 — Use batch.OpenSession inside a subscription Run delegate"
+title: "RVN011 - Use batch.OpenSession inside a subscription Run delegate"
 sidebar_label: RVN011
 sidebar_position: 11
 ---
 
-# RVN011 — Use batch.OpenSession inside a subscription Run delegate
-
-- **Severity**: Info (default)
-- **Code fix**: Yes
+- **Default severity**: `Info`
+- **Automated code fix**: Yes
 
 ## Description
 
@@ -19,7 +17,8 @@ The analyzer fires when `OpenSession` or `OpenAsyncSession` is called on a recei
 
 ## What to do
 
-Replace `store.OpenSession()` / `store.OpenAsyncSession()` with `batch.OpenSession()` / `batch.OpenAsyncSession()`, where `batch` is the parameter of the `Run` lambda. The automated code fix performs this replacement automatically.
+Replace `store.OpenSession()` / `store.OpenAsyncSession()` with `batch.OpenSession()` / `batch.OpenAsyncSession()`, where `batch` is the parameter of the `Run` lambda. 
+The automated code fix performs this replacement automatically.
 
 ### Before (triggers RVN011)
 

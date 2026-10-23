@@ -1,17 +1,16 @@
 ---
-title: "RVN010 — Unsupported method call inside RavenDB query expression"
+title: "RVN010 - Unsupported method call inside RavenDB query expression"
 sidebar_label: RVN010
 sidebar_position: 10
 ---
 
-# RVN010 — Unsupported method call inside RavenDB query expression
-
-- **Severity**: Info (default)
-- **Code fix**: No
+- **Default severity**: `Info`
+- **Automated code fix**: No
 
 ## Description
 
-RavenDB translates LINQ query lambdas (`Where`, `OrderBy`, `Select`, `Filter`, `Spatial`, `VectorSearch`, `OrderByDistance`, `MoreLikeThis`, etc.) to RQL on the server. User-defined methods called inside these lambdas cannot be translated and will throw at runtime during RQL generation. Extension methods are excluded from this check to reduce false positives.
+RavenDB translates LINQ query lambdas (`Where`, `OrderBy`, `Select`, `Filter`, `Spatial`, `VectorSearch`, `OrderByDistance`, `MoreLikeThis`, etc.) to RQL on the server. 
+User-defined methods called inside these lambdas cannot be translated and will throw at runtime during RQL generation. Extension methods are excluded from this check to reduce false positives.
 
 ## Query methods checked
 
